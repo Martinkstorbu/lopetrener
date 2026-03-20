@@ -444,6 +444,20 @@ function buildCtx(){
   return`\n\nBrukerprofil:\n- Navn: ${p.name}\n- Alder: ${p.age} år\n- Løpeerfaring: ${p.experience}\n- Nåværende form: ${p.fitness}\n- Mål: ${p.goal}\n- Km per uke: ${p.weeklyKm}\n- Skader/begrensninger: ${p.injuries||'Ingen'}${ml}${sv}`;
 }
 
+async function stravaFetchAll(token){
+  let all=[],page=1;
+  while(true){
+    const r=await fetch(`https://www.strava.com/api/v3/athlete/activities?per_page=200&page=${page}`,{headers:{Authorization:`Bearer ${token}`}});
+    if(!r.ok)break;
+    const batch=await r.json();
+    if(!batch.length)break;
+    all=all.concat(batch);
+    if(batch.length<200)break;
+    page++;
+  }
+  return all;
+}
+
 async function stravaConnect(creds){
   state.stravaStatus='connecting';render();
   try{
@@ -455,7 +469,7 @@ async function stravaConnect(creds){
     }
     state.stravaCreds={clientId:creds.clientId,clientSecret:creds.clientSecret,refreshToken:d.refresh_token};
     SS('stravaCreds',state.stravaCreds);
-    const acts=await(await fetch(`https://www.strava.com/api/v3/athlete/activities?per_page=30`,{headers:{Authorization:`Bearer ${d.access_token}`}})).json();
+    const acts=await stravaFetchAll(d.access_token);
     state.stravaActivities=acts;SS('stravaActivities',acts);
     state.stravaStatus='connected';
   }catch(e){console.error(e);state.stravaStatus='error'}
@@ -466,7 +480,7 @@ async function stravaRefresh(){
   try{
     const d=await(await fetch('https://www.strava.com/oauth/token',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({client_id:c.clientId,client_secret:c.clientSecret,refresh_token:c.refreshToken,grant_type:'refresh_token'})})).json();
     state.stravaCreds.refreshToken=d.refresh_token;SS('stravaCreds',state.stravaCreds);
-    const acts=await(await fetch(`https://www.strava.com/api/v3/athlete/activities?per_page=30`,{headers:{Authorization:`Bearer ${d.access_token}`}})).json();
+    const acts=await stravaFetchAll(d.access_token);
     state.stravaActivities=acts;SS('stravaActivities',acts);state.stravaStatus='connected';render();
   }catch(e){console.error(e)}
 }
