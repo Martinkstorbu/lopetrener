@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0a0f1a">
+<title>Løpetrener AI</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏃</text></svg>">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,500;0,9..40,700;1,9..40,400&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+--bg:#0a0f1a;--surface:#111827;--surface2:#1a2236;
+--border:#1e2a42;--text:#e8ecf4;--text2:#8896b0;
+--accent:#22d67a;--accent2:#1ab864;--accent-glow:rgba(34,214,122,0.15);
+--strava:#fc4c02;--strava-glow:rgba(252,76,2,0.12);
+--danger:#ef4444;--radius:14px;--radius-sm:10px;
+}
+html,body{height:100%;overflow:hidden}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text)}
+.app{max-width:480px;margin:0 auto;height:100vh;height:100dvh;display:flex;flex-direction:column;overflow:hidden;position:relative}
+.icon{width:20px;height:20px;display:inline-block;vertical-align:middle}
+.hide{display:none!important}
+
+/* Tab Bar */
+.tab-bar{display:flex;justify-content:space-around;padding:8px 0 max(12px,env(safe-area-inset-bottom));background:var(--surface);border-top:1px solid var(--border);flex-shrink:0}
+.tab{display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;color:var(--text2);font-size:10px;font-family:inherit;cursor:pointer;padding:4px 8px}
+.tab.active{color:var(--accent)}
+.tab svg{width:22px;height:22px}
+
+/* Content */
+.app-content{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
+.page{display:none;min-height:100%}
+.page.active{display:block}
+
+/* Buttons */
+.btn-primary{padding:14px 28px;border-radius:var(--radius-sm);background:var(--accent);color:#0a0f1a;font-weight:700;font-size:15px;border:none;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:8px;transition:transform .15s}
+.btn-primary:hover{transform:scale(1.02)}
+.btn-primary:disabled{opacity:.4;cursor:not-allowed;transform:none}
+.btn-secondary{padding:14px 28px;border-radius:var(--radius-sm);background:var(--surface2);color:var(--text);font-weight:500;font-size:15px;border:1px solid var(--border);cursor:pointer;font-family:inherit}
+.btn-strava{width:100%;padding:14px;border-radius:var(--radius-sm);background:var(--strava);color:#fff;font-weight:700;font-size:15px;border:none;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px;margin-top:16px}
+.btn-strava:disabled{opacity:.4;cursor:not-allowed}
+
+/* API Setup */
+.api-setup{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:48px 24px;text-align:center;min-height:100vh;gap:16px}
+.api-setup h2{font-size:22px;font-weight:700}
+.api-setup p{color:var(--text2);font-size:14px;line-height:1.6;max-width:320px}
+.api-setup p strong{color:var(--accent)}
+.api-input{width:100%;max-width:320px;padding:14px 16px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:14px;font-family:'Space Mono',monospace;outline:none}
+.api-input:focus{border-color:var(--accent)}
+
+/* Onboarding */
+.onboarding{padding:60px 24px 40px;min-height:100vh;display:flex;flex-direction:column;justify-content:center}
+.onboarding-progress{display:flex;gap:6px;margin-bottom:32px}
+.progress-dot{width:100%;height:4px;border-radius:2px;background:var(--border);transition:background .3s}
+.progress-dot.active{background:var(--accent)}
+.onboarding-label{font-size:24px;font-weight:700;margin-bottom:24px}
+.onboarding-input{width:100%;padding:16px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:18px;font-family:inherit;outline:none}
+.onboarding-input:focus{border-color:var(--accent)}
+.option-list{display:flex;flex-direction:column;gap:10px}
+.option-btn{text-align:left;padding:16px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:15px;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:10px}
+.option-btn.selected{border-color:var(--accent);background:var(--accent-glow)}
+.onboarding-nav{display:flex;gap:12px;margin-top:32px;justify-content:flex-end}
+
+/* Dashboard */
+.dashboard{padding:20px 16px 24px}
+.dash-greeting{display:block;font-size:26px;font-weight:700}
+.dash-goal{display:inline-block;margin-top:6px;padding:6px 14px;background:var(--accent-glow);color:var(--accent);border-radius:20px;font-size:13px;font-weight:500}
+.dash-header{margin-bottom:20px}
+.dash-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;transition:transform .15s,border-color .2s}
+.dash-card:hover{transform:scale(1.01);border-color:var(--accent)}
+.accent-card{display:flex;align-items:center;gap:14px;padding:20px;margin-bottom:16px;background:linear-gradient(135deg,var(--surface2),var(--surface));border:1px solid var(--accent);position:relative;overflow:hidden}
+.accent-card::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 0% 50%,var(--accent-glow),transparent 60%)}
+.accent-card-icon{font-size:32px;z-index:1}
+.accent-card-title{font-weight:700;font-size:16px;z-index:1}
+.accent-card-sub{color:var(--text2);font-size:13px;z-index:1}
+.accent-card-arrow{margin-left:auto;font-size:20px;color:var(--accent);z-index:1}
+.dash-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:24px}
+.mini{padding:18px 14px;text-align:center}
+.mini-emoji{font-size:26px;margin-bottom:6px}
+.mini-label{font-size:13px;font-weight:500;color:var(--text2)}
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.section-title{font-size:15px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.05em}
+.refresh-btn{background:none;border:none;color:var(--text2);cursor:pointer;padding:4px}
+.refresh-btn:hover{color:var(--accent)}
+.refresh-btn svg{width:16px;height:16px}
+.dash-section{margin-bottom:20px}
+.dash-stats{display:flex;justify-content:space-around;padding:18px;background:var(--surface);border-radius:var(--radius);border:1px solid var(--border)}
+.strava-stats{border-color:rgba(252,76,2,.25);margin-bottom:10px}
+.stat{text-align:center}
+.stat-value{font-size:22px;font-weight:700;font-family:'Space Mono',monospace;color:var(--accent)}
+.strava-val{color:var(--strava)!important}
+.stat-label{font-size:11px;color:var(--text2);margin-top:2px;text-transform:uppercase;letter-spacing:.05em}
+.strava-recent{display:flex;flex-direction:column;gap:8px}
+.strava-activity{padding:12px 14px;background:var(--surface);border-radius:var(--radius-sm);border:1px solid var(--border)}
+.strava-act-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.strava-act-name{font-weight:600;font-size:14px}
+.strava-act-date{font-family:'Space Mono',monospace;font-size:11px;color:var(--text2)}
+.strava-act-stats{display:flex;gap:12px;font-size:12px;color:var(--text2)}
+.strava-cta{display:flex;align-items:center;gap:10px;padding:14px 16px;background:var(--strava-glow);border:1px solid rgba(252,76,2,.25);border-radius:var(--radius-sm);color:var(--strava);cursor:pointer;font-size:13px;font-weight:500}
+.strava-cta svg{width:18px;height:18px;flex-shrink:0}
+
+/* Strava Setup */
+.strava-setup{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-top:16px}
+.strava-header{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+.strava-header h3{font-size:18px;font-weight:700}
+.strava-logo{color:var(--strava)}
+.strava-logo svg{width:24px;height:24px}
+.strava-status{display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;margin-bottom:14px}
+.strava-status.connected{background:var(--accent-glow);color:var(--accent)}
+.strava-status.connecting{background:var(--strava-glow);color:var(--strava)}
+.strava-status.error{background:rgba(239,68,68,.1);color:var(--danger)}
+.strava-guide{margin-bottom:16px}
+.guide-title{font-weight:700;font-size:14px;margin-bottom:10px}
+.guide-step{display:flex;align-items:flex-start;gap:10px;margin-bottom:8px;font-size:13px;color:var(--text2);line-height:1.5}
+.guide-step strong{color:var(--text)}
+.step-num{flex-shrink:0;width:22px;height:22px;border-radius:50%;background:var(--accent-glow);color:var(--accent);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700}
+.guide-url{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:11px;font-family:'Space Mono',monospace;color:var(--text2);word-break:break-all;line-height:1.6;margin:4px 0 8px 32px}
+.guide-url strong{color:var(--strava)}
+.strava-form label{display:block;font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;margin-top:14px}
+.strava-form label:first-child{margin-top:0}
+.strava-form input{width:100%;padding:12px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:14px;font-family:inherit;outline:none}
+.strava-form input:focus{border-color:var(--strava)}
+
+/* Settings */
+.settings-page{padding:20px 16px}
+.settings-title{font-size:22px;font-weight:700;margin-bottom:20px}
+.settings-row{display:flex;align-items:center;gap:14px;width:100%;padding:16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;font-family:inherit;color:var(--text);text-align:left;margin-bottom:12px}
+.settings-row:hover{border-color:var(--accent)}
+.settings-row svg{width:22px;height:22px;color:var(--accent);flex-shrink:0}
+.settings-row-title{font-weight:700;font-size:15px}
+.settings-row-sub{font-size:13px;color:var(--text2)}
+.settings-arrow{margin-left:auto;color:var(--text2)}
+.reset-btn{margin-top:24px;width:100%;padding:14px;border-radius:var(--radius-sm);background:rgba(239,68,68,.1);color:var(--danger);font-weight:600;font-size:14px;border:1px solid rgba(239,68,68,.2);cursor:pointer;font-family:inherit}
+
+/* Chat */
+.chat-page{display:flex;flex-direction:column;height:100%}
+.chat-messages{flex:1;overflow-y:auto;padding:16px;-webkit-overflow-scrolling:touch}
+.chat-empty{text-align:center;padding:60px 20px;color:var(--text2)}
+.chat-empty-icon{font-size:40px;margin-bottom:12px}
+.chat-empty-sub{font-size:12px;margin-top:6px;color:var(--accent)}
+.msg{margin-bottom:12px;display:flex}
+.msg.user{justify-content:flex-end}
+.msg-bubble{max-width:85%;padding:12px 16px;border-radius:18px;font-size:14px;line-height:1.55}
+.msg.user .msg-bubble{background:var(--accent);color:#0a0f1a;border-bottom-right-radius:4px;font-weight:500}
+.msg.assistant .msg-bubble{background:var(--surface2);border:1px solid var(--border);border-bottom-left-radius:4px}
+.msg-bubble h4{font-weight:700;font-size:15px;margin:8px 0 4px}
+.msg-bubble .bold{font-weight:700}
+.msg-bubble .li{padding-left:8px}
+.msg-bubble p{margin-bottom:2px}
+.loading-bubble{display:flex;align-items:center;height:24px}
+.dot-loader{display:flex;gap:5px}
+.dot-loader span{width:8px;height:8px;border-radius:50%;background:var(--text2);animation:dotPulse 1.2s infinite}
+.dot-loader span:nth-child(2){animation-delay:.2s}
+.dot-loader span:nth-child(3){animation-delay:.4s}
+@keyframes dotPulse{0%,80%,100%{opacity:.3;transform:scale(.8)}40%{opacity:1;transform:scale(1)}}
+.chat-input-bar{display:flex;gap:8px;padding:12px 16px;background:var(--surface);border-top:1px solid var(--border);flex-shrink:0}
+.chat-input{flex:1;padding:12px 16px;border-radius:24px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:14px;font-family:inherit;outline:none}
+.chat-input:focus{border-color:var(--accent)}
+.send-btn{width:44px;height:44px;border-radius:50%;background:var(--accent);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#0a0f1a;flex-shrink:0}
+.send-btn:disabled{opacity:.3;cursor:not-allowed}
+.send-btn svg{width:18px;height:18px}
+
+/* Log */
+.log-page{padding:20px 16px}
+.log-summary{display:flex;justify-content:space-around;padding:18px;background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);margin-bottom:16px}
+.add-log-btn{width:100%;justify-content:center;margin-bottom:16px}
+.log-form{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:16px}
+.log-form label{display:block;font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;margin-top:14px}
+.log-form label:first-child{margin-top:0}
+.log-form input,.log-form select,.log-form textarea{width:100%;padding:12px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:14px;font-family:inherit;outline:none}
+.log-form textarea{min-height:60px;resize:vertical}
+.log-form input:focus,.log-form select:focus,.log-form textarea:focus{border-color:var(--accent)}
+.feeling-row{display:flex;gap:8px}
+.feeling-btn{flex:1;padding:10px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:13px;cursor:pointer;font-family:inherit}
+.feeling-btn.selected{border-color:var(--accent);background:var(--accent-glow)}
+.form-actions{display:flex;gap:10px;margin-top:20px;justify-content:flex-end}
+.log-list{display:flex;flex-direction:column;gap:10px}
+.log-entry{padding:14px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm)}
+.log-entry-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.log-entry-date{font-family:'Space Mono',monospace;font-size:12px;color:var(--text2)}
+.log-entry-feeling{font-size:16px}
+.log-entry-type{font-weight:700;font-size:15px}
+.log-entry-stats{color:var(--text2);font-size:13px;margin-top:2px}
+.log-entry-notes{color:var(--text2);font-size:13px;margin-top:6px;font-style:italic;border-top:1px solid var(--border);padding-top:6px}
+
+/* Source badges & shoe tags */
+.src-badge{font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600}
+.strava-badge{background:var(--strava-glow);color:var(--strava)}
+.manual-badge{background:var(--accent-glow);color:var(--accent)}
+.shoe-tag{font-size:12px;color:var(--text2);display:inline-block;margin-top:4px}
+.log-entry-shoe{min-height:4px}
+.shoe-inline-select{margin-top:6px;padding:6px 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text2);font-size:12px;font-family:inherit;outline:none;cursor:pointer}
+.shoe-inline-select:focus{border-color:var(--accent)}
+.empty-log{text-align:center;padding:40px;color:var(--text2);font-size:14px}
+
+/* Sub-tabs */
+.sub-tabs{display:flex;gap:4px;margin-bottom:16px;background:var(--surface);border-radius:var(--radius-sm);padding:4px;border:1px solid var(--border)}
+.sub-tab{flex:1;padding:10px;border:none;border-radius:8px;background:transparent;color:var(--text2);font-weight:600;font-size:14px;cursor:pointer;font-family:inherit;transition:all .2s}
+.sub-tab.active{background:var(--accent);color:#0a0f1a}
+
+/* Shoe cards */
+.shoe-list{display:flex;flex-direction:column;gap:12px}
+.shoe-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;transition:border-color .2s}
+.shoe-card.retired{opacity:.6}
+.shoe-card-top{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.shoe-thumb{width:56px;height:56px;border-radius:10px;object-fit:cover;flex-shrink:0}
+.shoe-thumb-placeholder{width:56px;height:56px;border-radius:10px;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0}
+.shoe-info{flex:1;min-width:0}
+.shoe-name{font-weight:700;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.shoe-type{font-size:13px;color:var(--text2);margin-top:2px}
+.retired-badge{font-size:10px;background:var(--border);color:var(--text2);padding:2px 6px;border-radius:4px;font-weight:600}
+.shoe-menu-btn{background:none;border:none;color:var(--text2);font-size:20px;cursor:pointer;padding:4px 8px;line-height:1}
+.shoe-stats-row{display:flex;justify-content:space-around;padding:12px 0 0;border-top:1px solid var(--border)}
+.shoe-stat{text-align:center}
+.shoe-stat-val{display:block;font-size:18px;font-weight:700;font-family:'Space Mono',monospace;color:var(--accent)}
+.shoe-stat-lbl{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.05em}
+.shoe-menu{padding:8px 0;margin-top:8px;border-top:1px solid var(--border);display:flex;gap:8px}
+.shoe-menu button{flex:1;padding:8px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:13px;cursor:pointer;font-family:inherit}
+.shoe-menu .danger-text{color:var(--danger);border-color:rgba(239,68,68,.2)}
+
+/* Photo upload */
+.photo-upload{cursor:pointer;border:2px dashed var(--border);border-radius:var(--radius-sm);overflow:hidden;transition:border-color .2s}
+.photo-upload:hover{border-color:var(--accent)}
+.photo-placeholder{display:flex;flex-direction:column;align-items:center;gap:8px;padding:24px;color:var(--text2);font-size:13px}
+.photo-placeholder svg{width:28px;height:28px}
+.shoe-preview{width:100%;max-height:200px;object-fit:cover;display:block}
+</style>
+</head>
+<body>
+<div class="app" id="app"></div>
+
+<script>
+// ─── State ───
+const LS = k => JSON.parse(localStorage.getItem('rc_'+k) || 'null');
+const SS = (k,v) => localStorage.setItem('rc_'+k, JSON.stringify(v));
+
+let state = {
+  apiKey: LS('apiKey') || '',
+  profile: LS('profile') || { logs: [] },
+  profileDone: LS('profileDone') || false,
+  tab: 'home',
+  stravaCreds: LS('stravaCreds') || { clientId:'', clientSecret:'', refreshToken:'' },
+  stravaActivities: LS('stravaActivities') || [],
+  stravaStatus: LS('stravaCreds')?.refreshToken ? 'saved' : 'disconnected',
+  chatMessages: [],
+  chatLoading: false,
+  onboardingStep: 0,
+  onboardingForm: {},
+  showLogForm: false,
+  logForm: { date: new Date().toISOString().slice(0,10), type:'Rolig løp', distance:'', duration:'', feeling:'Ok', notes:'', shoeId:'' },
+  editingProfile: false,
+  shoes: LS('shoes') || [],
+  shoeMap: LS('shoeMap') || {},
+  showShoeForm: false,
+  shoeForm: { name:'', type:'Asfalt', photo:'' },
+  logSubTab: 'runs',
+};
+
+// ─── Constants ───
+const API_MODEL = 'claude-sonnet-4-20250514';
+const SYSTEM_PROMPT = `Du er en erfaren og motiverende løpetrener-AI. Du snakker norsk.
+Du gir personlige treningsråd, løpeøkter og programmer basert på brukerens profil.
+
+## Treningsfilosofi: 80/20-metoden
+Din kjernefilosofi er 80/20-metoden (også kjent som polarisert trening):
+- Ca. 80 % av treningsvolumet skal være i lav intensitet (sone 1–2, rolig prat-tempo, puls under 75–80 % av makspuls)
+- Ca. 20 % av treningsvolumet skal være i høy intensitet (sone 4–5, intervaller, tempo, bakkeløp)
+- Svært lite trening i "gråsonen" / middels intensitet (sone 3) — dette gir mest slitasje med minst utbytte
+- Forklar gjerne HVORFOR en økt er rolig eller hard, slik at brukeren forstår metoden
+- Når du lager ukeplaner, sørg for at fordelingen følger 80/20-prinsippet
+- Oppmuntre brukeren til å holde de rolige øktene VIRKELIG rolige — dette er nøkkelen
+
+## Bruk av treningsdata
+Du har tilgang til brukerens faktiske treningshistorikk fra Strava (og/eller manuelt logget).
+Analyser dataene for å:
+- Vurdere nåværende treningsbelastning og om brukeren bør øke/redusere
+- Se mønstre i intensitet, distanse og frekvens
+- Tilpasse forslag basert på hva som faktisk er gjort siste ukene
+- Gi konkrete tilbakemeldinger på tempofordeling (for mye i gråsonen? for lite rolig?)
+- Beregne ukentlig kilometervolum og trend
+
+Når du foreslår en økt, bruk dette formatet:
+- Type økt (rolig løp, intervall, tempo, langtur osv.) + intensitetssone
+- Oppvarming
+- Hoveddel med tempo/puls-anbefalinger
+- Nedjogging
+- Estimert tid og distanse
+
+## Styrketrening for løpere
+Styrketrening er en sentral del av treningsopplegget. Brukeren har noe kneproblemer — ta hensyn til dette, men ikke gjør det til eneste fokus.
+Regler:
+- Foreslå ALLTID 2 styrkeøkter per uke i ukeplaner
+- Hver økt skal vare 30–60 minutter INKLUDERT hvile mellom sett
+- Fokus: løpsspesifikk styrke med hovedvekt på underkropp (lår, rumpe, hofter, legger) + core/bål
+- Varier mellom to typer økter:
+  * Hjemmeøkter (uten utstyr/vekter): kroppsvektøvelser som utfall, knebøy, step-ups, ettbeinsøvelser, rumpeløft, planke-varianter, sideliggende hoftereising osv.
+  * Studioøkter (med tilgang til vekter/maskiner): knebøy med vektstang, beinpress, rumensk markløft, hip thrust, lunges med manualer, leggpress, kabel-øvelser osv.
+- Marker tydelig om økten er en hjemmeøkt eller studioøkt
+- Varier øvelsesutvalget fra uke til uke for å holde det interessant og trene allsidig
+- Legg styrkeøktene på dager som IKKE er harde løpeøkter (helst etter rolige løp eller på hviledager)
+- Formater styrkeøkter tydelig med: øvelse, sett x reps, pausetid, og korte forklaringer på utførelse
+- Progrider over tid: øk volum, vekt eller vanskelighetsgrad gradvis
+
+Vær motiverende men realistisk. Ta hensyn til skadeforebygging.
+Bruk emojier sparsomt men effektivt for å gjøre det visuelt.
+Hold svarene konsise og handlingsorienterte.`;
+
+const ONBOARDING_STEPS = [
+  { key:'name', label:'Hva heter du?', type:'text', placeholder:'Navnet ditt' },
+  { key:'age', label:'Hvor gammel er du?', type:'number', placeholder:'Alder' },
+  { key:'experience', label:'Løpeerfaring?', type:'select', options:['Nybegynner (0–6 mnd)','Litt erfaring (6–24 mnd)','Erfaren (2–5 år)','Veteran (5+ år)'] },
+  { key:'fitness', label:'Hvordan er formen din nå?', type:'select', options:['Lav — har ikke trent på en stund','Middels — trener av og til','God — trener regelmessig','Veldig god — trener mye'] },
+  { key:'goal', label:'Hva er målet ditt?', type:'select', options:['Komme i gang med løping','Løpe 5 km','Løpe 10 km','Halvmaraton','Maraton','Bli raskere','Holde formen / ha det gøy'] },
+  { key:'weeklyKm', label:'Hvor mange km løper du per uke nå?', type:'number', placeholder:'F.eks. 15' },
+  { key:'injuries', label:'Skader eller begrensninger?', type:'text', placeholder:"F.eks. vondt kne, astma... eller 'ingen'" },
+];
+
+const GOAL_EMOJI = {'Komme i gang med løping':'🌱','Løpe 5 km':'🏃','Løpe 10 km':'🔥','Halvmaraton':'⚡','Maraton':'🏆','Bli raskere':'💨','Holde formen / ha det gøy':'😊'};
+
+// ─── SVG Icons ───
+const ICO = {
+  run: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="2"/><path d="M7 21l3-7 2.5 2L16 10"/><path d="M16 10l2 7"/><path d="M7 21h10"/></svg>',
+  chat: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
+  log: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>',
+  gear: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',
+  send: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>',
+  strava: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/></svg>',
+  refresh: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>',
+  check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
+  key: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>',
+  user: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
+  plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>',
+  shoe: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18h18v-2c0-1-1-2-2-2h-1l-2-4H8L6 14H5c-1 0-2 1-2 2v2z"/><path d="M8 10V6c0-1 1-2 2-2h1"/></svg>',
+  trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>',
+  camera: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>',
+};
+function icon(name,cls='icon'){return `<span class="${cls}">${ICO[name]}</span>`}
+
+// ─── Strava ───
+function fmtActivity(a){
+  const date=new Date(a.start_date_local).toISOString().slice(0,10);
+  const km=(a.distance/1000).toFixed(1);
+  const mins=Math.round(a.moving_time/60);
+  const pr=a.distance>0?a.moving_time/60/(a.distance/1000):0;
+  const pm=Math.floor(pr), ps=Math.round((pr-pm)*60).toString().padStart(2,'0');
+  const pace=`${pm}:${ps}`;
+  const hr=a.average_heartrate?Math.round(a.average_heartrate):null;
+  const maxHr=a.max_heartrate?Math.round(a.max_heartrate):null;
+  return {date,name:a.name,km,mins,pace,hr,maxHr,elev:Math.round(a.total_elevation_gain),suffer:a.suffer_score,type:a.type};
+}
+function fmtStravaForAI(acts){
+  if(!acts.length)return'';
+  const runs=acts.filter(a=>a.type==='Run'||a.type==='TrailRun');
+  if(!runs.length)return'\n\nIngen løpeøkter funnet i Strava nylig.';
+  const weeks={};
+  runs.forEach(a=>{const d=new Date(a.start_date_local),ws=new Date(d);ws.setDate(d.getDate()-d.getDay()+1);const k=ws.toISOString().slice(0,10);if(!weeks[k])weeks[k]={km:0,count:0,mins:0};weeks[k].km+=a.distance/1000;weeks[k].count++;weeks[k].mins+=a.moving_time/60});
+  const ws=Object.entries(weeks).sort((a,b)=>b[0].localeCompare(a[0])).slice(0,4).map(([w,d])=>`  Uke ${w}: ${d.km.toFixed(1)} km, ${d.count} økter, ${Math.round(d.mins)} min`).join('\n');
+  const rr=runs.slice(0,10).map(a=>{const f=fmtActivity(a);return`  ${f.date}: "${f.name}" — ${f.km} km, ${f.mins} min, tempo ${f.pace} min/km${f.hr?`, snitt puls ${f.hr}`:''}${f.maxHr?`, maks ${f.maxHr}`:''}${f.suffer?`, suffer ${f.suffer}`:''},stigning ${f.elev}m`}).join('\n');
+  return`\n\n## Treningsdata fra Strava\n### Ukeoversikt (siste 4 uker):\n${ws}\n\n### Siste ${Math.min(runs.length,10)} løpeøkter:\n${rr}`;
+}
+function buildCtx(){
+  const p=state.profile;if(!p.name)return'';
+  const ml=p.logs?.length?`\nManuelt loggede økter:\n${p.logs.slice(-5).map(l=>`- ${l.date}: ${l.type}, ${l.distance}km, ${l.duration}min — ${l.feeling}`).join('\n')}`:'';
+  const sv=state.stravaActivities?.length?fmtStravaForAI(state.stravaActivities):'';
+  return`\n\nBrukerprofil:\n- Navn: ${p.name}\n- Alder: ${p.age} år\n- Løpeerfaring: ${p.experience}\n- Nåværende form: ${p.fitness}\n- Mål: ${p.goal}\n- Km per uke: ${p.weeklyKm}\n- Skader/begrensninger: ${p.injuries||'Ingen'}${ml}${sv}`;
+}
+
+async function stravaConnect(creds){
+  state.stravaStatus='connecting';render();
+  try{
+    let r=await fetch('https://www.strava.com/oauth/token',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({client_id:creds.clientId,client_secret:creds.clientSecret,code:creds.code,grant_type:'authorization_code'})});
+    let d;
+    if(r.ok){d=await r.json()}else{
+      r=await fetch('https://www.strava.com/oauth/token',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({client_id:creds.clientId,client_secret:creds.clientSecret,refresh_token:creds.code,grant_type:'refresh_token'})});
+      if(!r.ok)throw new Error('Feil');d=await r.json();
+    }
+    state.stravaCreds={clientId:creds.clientId,clientSecret:creds.clientSecret,refreshToken:d.refresh_token};
+    SS('stravaCreds',state.stravaCreds);
+    const acts=await(await fetch(`https://www.strava.com/api/v3/athlete/activities?per_page=30`,{headers:{Authorization:`Bearer ${d.access_token}`}})).json();
+    state.stravaActivities=acts;SS('stravaActivities',acts);
+    state.stravaStatus='connected';
+  }catch(e){console.error(e);state.stravaStatus='error'}
+  render();
+}
+async function stravaRefresh(){
+  const c=state.stravaCreds;if(!c.refreshToken)return;
+  try{
+    const d=await(await fetch('https://www.strava.com/oauth/token',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({client_id:c.clientId,client_secret:c.clientSecret,refresh_token:c.refreshToken,grant_type:'refresh_token'})})).json();
+    state.stravaCreds.refreshToken=d.refresh_token;SS('stravaCreds',state.stravaCreds);
+    const acts=await(await fetch(`https://www.strava.com/api/v3/athlete/activities?per_page=30`,{headers:{Authorization:`Bearer ${d.access_token}`}})).json();
+    state.stravaActivities=acts;SS('stravaActivities',acts);state.stravaStatus='connected';render();
+  }catch(e){console.error(e)}
+}
+
+// ─── AI Coach ───
+async function askCoach(msgs){
+  const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':state.apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:API_MODEL,max_tokens:1500,system:SYSTEM_PROMPT+buildCtx(),messages:msgs})});
+  const d=await r.json();if(d.error)throw new Error(d.error.message);
+  return d.content.map(b=>b.text||'').join('\n');
+}
+
+function fmtMsg(text){
+  return text.split('\n').map(line=>{
+    if(line.startsWith('###'))return`<h4>${line.replace(/^#+\s*/,'')}</h4>`;
+    if(line.startsWith('**')&&line.endsWith('**'))return`<p class="bold">${line.replace(/\*\*/g,'')}</p>`;
+    if(line.startsWith('- '))return`<p class="li">• ${line.slice(2)}</p>`;
+    return`<p>${line||'&nbsp;'}</p>`;
+  }).join('');
+}
+
+async function sendChat(text){
+  if(!text.trim()||state.chatLoading)return;
+  state.chatMessages.push({role:'user',content:text});
+  state.chatLoading=true;render();
+  try{
+    const reply=await askCoach(state.chatMessages);
+    state.chatMessages.push({role:'assistant',content:reply});
+  }catch(e){state.chatMessages.push({role:'assistant',content:`⚠️ Feil: ${e.message}`})}
+  state.chatLoading=false;render();
+  setTimeout(()=>{const el=document.getElementById('chat-bottom');el&&el.scrollIntoView({behavior:'smooth'})},50);
+}
+
+function quickAsk(msg){state.chatMessages=[];state.tab='coach';render();setTimeout(()=>sendChat(msg),100)}
+
+// ─── Render ───
+function render(){
+  const app=document.getElementById('app');
+  if(!state.apiKey){app.innerHTML=renderApiSetup();return}
+  if(!state.profileDone&&!state.editingProfile){app.innerHTML=renderOnboarding();return}
+  if(state.editingProfile){app.innerHTML=renderOnboarding(true);return}
+
+  const runs=(state.stravaActivities||[]).filter(a=>a.type==='Run'||a.type==='TrailRun');
+
+  app.innerHTML=`
+    <div class="app-content">
+      <div class="page ${state.tab==='home'?'active':''}" id="page-home">${renderDashboard(runs)}</div>
+      <div class="page ${state.tab==='coach'?'active':''}" id="page-coach" style="display:${state.tab==='coach'?'flex':'none'};flex-direction:column;height:100%">${renderChat(runs)}</div>
+      <div class="page ${state.tab==='log'?'active':''}" id="page-log">${renderLog()}</div>
+      <div class="page ${state.tab==='settings'?'active':''}" id="page-settings">${renderSettings()}</div>
+    </div>
+    <nav class="tab-bar">
+      ${['home|run|Hjem','coach|chat|Trener','log|log|Logg','settings|gear|Innstillinger'].map(t=>{const[id,ic,lb]=t.split('|');return`<button class="tab ${state.tab===id?'active':''}" onclick="switchTab('${id}')">${ICO[ic]}<span>${lb}</span></button>`}).join('')}
+    </nav>`;
+}
+
+function switchTab(t){state.tab=t;if(t==='coach'&&state.chatMessages.length===0){}render();if(t==='coach')setTimeout(()=>{const el=document.getElementById('chat-bottom');el&&el.scrollIntoView()},50)}
+
+function renderApiSetup(){
+  return`<div class="api-setup">
+    <span style="color:var(--accent)">${ICO.key}</span>
+    <h2>Løpetrener AI</h2>
+    <p>For at appen skal fungere trenger du en Anthropic API-nøkkel fra <strong>console.anthropic.com</strong>.</p>
+    <input type="password" placeholder="sk-ant-..." class="api-input" id="apiKeyInput">
+    <button class="btn-primary" onclick="saveApiKey()">Koble til</button>
+  </div>`}
+
+function saveApiKey(){const k=document.getElementById('apiKeyInput').value;if(k.startsWith('sk-')){state.apiKey=k;SS('apiKey',k);render()}}
+
+function renderOnboarding(editing=false){
+  const step=state.onboardingStep;
+  const cur=ONBOARDING_STEPS[step];
+  const form=editing?{...state.profile,...state.onboardingForm}:state.onboardingForm;
+  const val=form[cur.key]||'';
+  const dots=ONBOARDING_STEPS.map((_,i)=>`<div class="progress-dot ${i<=step?'active':''}"></div>`).join('');
+  let input='';
+  if(cur.type==='select'){
+    input=`<div class="option-list">${cur.options.map(o=>`<button class="option-btn ${val===o?'selected':''}" onclick="obSet('${cur.key}',this.dataset.v)" data-v="${o}">${val===o?ICO.check:''}${o}</button>`).join('')}</div>`;
+  }else{
+    input=`<input class="onboarding-input" type="${cur.type}" placeholder="${cur.placeholder}" value="${val}" oninput="obSet('${cur.key}',this.value)" autofocus>`;
+  }
+  const back=step>0?`<button class="btn-secondary" onclick="obBack()">Tilbake</button>`:'';
+  const next=step<ONBOARDING_STEPS.length-1?`<button class="btn-primary" ${!val?'disabled':''} onclick="obNext()">Neste</button>`:`<button class="btn-primary" ${!val?'disabled':''} onclick="obFinish(${editing})">${editing?'Lagre':'Ferdig!'}</button>`;
+  return`<div class="onboarding"><div class="onboarding-progress">${dots}</div><h2 class="onboarding-label">${cur.label}</h2>${input}<div class="onboarding-nav">${back}${next}</div></div>`;
+}
+function obSet(k,v){state.onboardingForm[k]=v;render()}
+function obNext(){state.onboardingStep++;render()}
+function obBack(){state.onboardingStep--;render()}
+function obFinish(editing){
+  state.profile={...state.profile,...state.onboardingForm,logs:state.profile.logs||[]};
+  SS('profile',state.profile);state.profileDone=true;SS('profileDone',true);
+  state.onboardingStep=0;state.onboardingForm={};
+  if(editing){state.editingProfile=false;state.tab='settings'}
+  render();
+}
+
+function renderDashboard(runs){
+  const p=state.profile;
+  const now=new Date(),ws=new Date(now);ws.setDate(now.getDate()-((now.getDay()+6)%7));ws.setHours(0,0,0,0);
+  const weekKm=runs.filter(a=>new Date(a.start_date_local)>=ws).reduce((s,a)=>s+a.distance/1000,0);
+  const recent=runs.slice(0,4);
+
+  let stravaSection='';
+  if(state.stravaStatus==='connected'){
+    stravaSection=`<div class="dash-section">
+      <div class="section-header"><h3 class="section-title">Strava</h3><button class="refresh-btn" onclick="stravaRefresh()">${ICO.refresh}</button></div>
+      <div class="dash-stats strava-stats">
+        <div class="stat"><div class="stat-value strava-val">${weekKm.toFixed(1)}</div><div class="stat-label">km denne uken</div></div>
+        <div class="stat"><div class="stat-value strava-val">${runs.length}</div><div class="stat-label">løp hentet</div></div>
+      </div>
+      <div class="strava-recent">${recent.map(a=>{const f=fmtActivity(a);return`<div class="strava-activity"><div class="strava-act-top"><span class="strava-act-name">${f.name}</span><span class="strava-act-date">${f.date}</span></div><div class="strava-act-stats"><span>${f.km} km</span><span>${f.mins} min</span><span>${f.pace} /km</span>${f.hr?`<span>♥ ${f.hr}</span>`:''}</div></div>`}).join('')}</div>
+    </div>`;
+  }else{
+    stravaSection=`<div class="dash-section"><div class="strava-cta" onclick="switchTab('settings')">${ICO.strava}<span>Koble til Strava for smartere treningsråd →</span></div></div>`;
+  }
+
+  return`<div class="dashboard">
+    <div class="dash-header"><span class="dash-greeting">Hei, ${p.name}!</span><span class="dash-goal">${GOAL_EMOJI[p.goal]||'🏃'} ${p.goal}</span></div>
+    <div class="dash-card accent-card" onclick="quickAsk('Gi meg en treningsøkt som passer for i dag. Analyser Strava-dataene mine og profilen min for å finne ut hva som er best å gjøre nå, basert på 80/20-metoden.')">
+      <div class="accent-card-icon">🏃‍♂️</div><div><div class="accent-card-title">Dagens økt</div><div class="accent-card-sub">AI-anbefaling basert på din historikk</div></div><div class="accent-card-arrow">→</div>
+    </div>
+    <div class="dash-grid">
+      <div class="dash-card mini" onclick="quickAsk('Lag en ukeplan for meg denne uken basert på 80/20-metoden, inkludert 2 styrkeøkter. Se på Strava-historikken min for å tilpasse belastningen riktig.')"><div class="mini-emoji">📋</div><div class="mini-label">Ukeplan</div></div>
+      <div class="dash-card mini" onclick="quickAsk('Gi meg en styrkeøkt for løpere med fokus på underkropp og core (30–60 min inkl. hvile). Varier mellom hjemmeøkt og studioøkt — velg det som passer best nå. Inkluder sett, reps, pausetid og korte forklaringer.')"><div class="mini-emoji">💪</div><div class="mini-label">Styrkeøkt</div></div>
+      <div class="dash-card mini" onclick="quickAsk('Analyser Strava-dataene mine. Følger jeg 80/20-fordelingen? Gi meg en ærlig vurdering og forbedringsforslag.')"><div class="mini-emoji">📊</div><div class="mini-label">80/20-analyse</div></div>
+      <div class="dash-card mini" onclick="quickAsk('Gi meg tips for skadeforebygging basert på treningshistorikken min. Ser du noen risikofaktorer?')"><div class="mini-emoji">🛡️</div><div class="mini-label">Skadeforebygging</div></div>
+      <div class="dash-card mini" onclick="quickAsk('Gi meg ernæringsråd tilpasset mitt treningsprogram og mål.')"><div class="mini-emoji">🥗</div><div class="mini-label">Ernæring</div></div>
+      <div class="dash-card mini" onclick="quickAsk('Gi meg en god oppvarmingsrutine og uttøyning tilpasset løping.')"><div class="mini-emoji">🧘</div><div class="mini-label">Oppvarming</div></div>
+    </div>
+    ${stravaSection}
+    <div class="dash-stats"><div class="stat"><div class="stat-value">${p.weeklyKm||0}</div><div class="stat-label">km/uke mål</div></div><div class="stat"><div class="stat-value">${(p.logs||[]).length}</div><div class="stat-label">manuelt logget</div></div><div class="stat"><div class="stat-value">${p.experience?.split(' ')[0]||'—'}</div><div class="stat-label">erfaring</div></div></div>
+  </div>`;
+}
+
+function renderChat(runs){
+  const rc=runs?.length||0;
+  let msgs='';
+  if(state.chatMessages.length===0&&!state.chatLoading){
+    msgs=`<div class="chat-empty"><div class="chat-empty-icon">💬</div><p>Spør treneren om hva som helst!</p>${rc?`<p class="chat-empty-sub">📡 ${rc} løpeøkter fra Strava lastet inn</p>`:''}</div>`;
+  }else{
+    msgs=state.chatMessages.map(m=>`<div class="msg ${m.role}"><div class="msg-bubble">${m.role==='assistant'?fmtMsg(m.content):m.content}</div></div>`).join('');
+    if(state.chatLoading)msgs+=`<div class="msg assistant"><div class="msg-bubble loading-bubble"><span class="dot-loader"><span></span><span></span><span></span></span></div></div>`;
+  }
+  return`<div class="chat-messages">${msgs}<div id="chat-bottom"></div></div>
+    <div class="chat-input-bar"><input class="chat-input" id="chatInput" placeholder="Spør treneren..." onkeydown="if(event.key==='Enter')chatSend()"><button class="send-btn" onclick="chatSend()">${ICO.send}</button></div>`;
+}
+function chatSend(){const el=document.getElementById('chatInput');if(el){sendChat(el.value);el.value=''}}
+
+function renderLog(){
+  const st=state.logSubTab;
+  return`<div class="log-page">
+    <div class="sub-tabs">
+      <button class="sub-tab ${st==='runs'?'active':''}" onclick="state.logSubTab='runs';render()">Økter</button>
+      <button class="sub-tab ${st==='shoes'?'active':''}" onclick="state.logSubTab='shoes';render()">👟 Sko</button>
+    </div>
+    ${st==='runs'?renderLogRuns():renderShoes()}
+  </div>`;
+}
+
+function renderLogRuns(){
+  // Merge Strava runs + manual logs into one sorted list
+  const stravaRuns=(state.stravaActivities||[]).filter(a=>a.type==='Run'||a.type==='TrailRun').map(a=>{
+    const f=fmtActivity(a);
+    return {source:'strava',id:a.id.toString(),date:f.date,name:f.name,km:parseFloat(f.km),mins:f.mins,pace:f.pace,hr:f.hr,type:a.type==='TrailRun'?'Terreng':'Løp',shoeId:state.shoeMap[a.id]||''};
+  });
+  const manualLogs=(state.profile.logs||[]).map((l,i)=>({source:'manual',id:'m'+i,date:l.date,name:l.type,km:parseFloat(l.distance)||0,mins:parseInt(l.duration)||0,type:l.type,feeling:l.feeling,shoeId:l.shoeId||'',notes:l.notes}));
+  const all=[...stravaRuns,...manualLogs].sort((a,b)=>b.date.localeCompare(a.date));
+
+  const totalKm=all.reduce((s,l)=>s+l.km,0);
+  const totalRuns=all.length;
+  const shoes=state.shoes.filter(s=>!s.retired);
+  const shoeOpts=shoes.length?`<option value="">👟 —</option>${shoes.map(s=>`<option value="${s.id}">${s.name}</option>`).join('')}`:'';
+
+  let formHtml='';
+  if(state.showLogForm){
+    const f=state.logForm;
+    const shoeSelect=shoes.length?`<label>Sko</label><select onchange="state.logForm.shoeId=this.value"><option value="">— Ingen —</option>${shoes.map(s=>`<option value="${s.id}" ${f.shoeId===s.id?'selected':''}>${s.name}</option>`).join('')}</select>`:'';
+    formHtml=`<div class="log-form">
+      <label>Dato</label><input type="date" value="${f.date}" oninput="state.logForm.date=this.value">
+      <label>Type økt</label><select onchange="state.logForm.type=this.value">${['Rolig løp','Intervall','Tempo','Langtur','Fartlek','Bakkeløp','Annet'].map(t=>`<option ${f.type===t?'selected':''}>${t}</option>`).join('')}</select>
+      <label>Distanse (km)</label><input type="number" step="0.1" placeholder="F.eks. 8.5" value="${f.distance}" oninput="state.logForm.distance=this.value">
+      <label>Varighet (min)</label><input type="number" placeholder="F.eks. 45" value="${f.duration}" oninput="state.logForm.duration=this.value">
+      <label>Følelse</label><div class="feeling-row">${['Bra','Ok','Tungt'].map(fl=>`<button class="feeling-btn ${f.feeling===fl?'selected':''}" onclick="state.logForm.feeling='${fl}';render()">${fl==='Bra'?'😊':fl==='Tungt'?'😓':'😐'} ${fl}</button>`).join('')}</div>
+      ${shoeSelect}
+      <label>Notater (valgfritt)</label><textarea placeholder="Hvordan gikk det?" oninput="state.logForm.notes=this.value">${f.notes}</textarea>
+      <div class="form-actions"><button class="btn-secondary" onclick="state.showLogForm=false;render()">Avbryt</button><button class="btn-primary" onclick="saveLog()">Lagre</button></div>
+    </div>`;
+  }else{
+    formHtml=`<button class="btn-primary add-log-btn" onclick="state.showLogForm=true;render()">${ICO.plus} Logg manuell økt</button>`;
+  }
+
+  const listHtml=all.length?all.map(l=>{
+    const shoe=l.shoeId?state.shoes.find(s=>s.id===l.shoeId):null;
+    const srcBadge=l.source==='strava'?'<span class="src-badge strava-badge">Strava</span>':'<span class="src-badge manual-badge">Manuell</span>';
+    const shoeLabel=shoe?`<span class="shoe-tag">👟 ${shoe.name}</span>`:(shoes.length&&l.source==='strava'?`<select class="shoe-inline-select" onchange="assignShoe('${l.id}',this.value)">${shoeOpts}</select>`:'');
+    const paceInfo=l.pace?` · ${l.pace} /km`:'';
+    const hrInfo=l.hr?` · ♥ ${l.hr}`:'';
+    const feelInfo=l.feeling?` · ${l.feeling==='Bra'?'😊':l.feeling==='Tungt'?'😓':'😐'}`:''
+    return`<div class="log-entry">
+      <div class="log-entry-header"><span class="log-entry-date">${l.date}</span>${srcBadge}</div>
+      <div class="log-entry-type">${l.name}</div>
+      <div class="log-entry-stats">${l.km} km · ${l.mins} min${paceInfo}${hrInfo}${feelInfo}</div>
+      <div class="log-entry-shoe">${shoeLabel}</div>
+      ${l.notes?`<div class="log-entry-notes">${l.notes}</div>`:''}
+    </div>`;
+  }).join(''):`<div class="empty-log">Ingen økter ennå. Koble til Strava eller logg manuelt.</div>`;
+
+  return`
+    <div class="log-summary"><div class="stat"><div class="stat-value">${totalRuns}</div><div class="stat-label">økter</div></div><div class="stat"><div class="stat-value">${totalKm.toFixed(1)}</div><div class="stat-label">total km</div></div></div>
+    ${formHtml}
+    <div class="log-list">${listHtml}</div>`;
+}
+
+function assignShoe(activityId,shoeId){
+  if(shoeId){state.shoeMap[activityId]=shoeId}else{delete state.shoeMap[activityId]}
+  SS('shoeMap',state.shoeMap);render();
+}
+
+function getShoeStats(shoeId){
+  // Manual logs
+  const manualLogs=(state.profile.logs||[]).filter(l=>l.shoeId===shoeId);
+  const manualKm=manualLogs.reduce((s,l)=>s+Number(l.distance||0),0);
+  // Strava activities
+  const stravaIds=Object.entries(state.shoeMap).filter(([_,sid])=>sid===shoeId).map(([aid])=>aid);
+  const stravaActs=(state.stravaActivities||[]).filter(a=>stravaIds.includes(a.id.toString()));
+  const stravaKm=stravaActs.reduce((s,a)=>s+a.distance/1000,0);
+  const totalKm=manualKm+stravaKm;
+  const runCount=manualLogs.length+stravaActs.length;
+  const avgKm=runCount>0?(totalKm/runCount).toFixed(1):'0';
+  return {totalKm,runCount,avgKm};
+}
+
+function renderShoes(){
+  const shoes=state.shoes;
+  let formHtml='';
+  if(state.showShoeForm){
+    const f=state.shoeForm;
+    formHtml=`<div class="log-form shoe-form">
+      <label>Navn på skoen</label><input type="text" placeholder="F.eks. Nike Pegasus 41" value="${f.name||''}" oninput="state.shoeForm.name=this.value">
+      <label>Type</label><div class="feeling-row">${['Asfalt','Konkurranse','Terreng','Piggsko'].map(t=>`<button class="feeling-btn ${f.type===t?'selected':''}" onclick="state.shoeForm.type='${t}';render()">${t==='Asfalt'?'🛣️':t==='Konkurranse'?'🏁':t==='Terreng'?'⛰️':'🧊'} ${t}</button>`).join('')}</div>
+      <label>Bilde (valgfritt)</label>
+      <div class="photo-upload" onclick="document.getElementById('shoePhotoInput').click()">
+        ${f.photo?`<img src="${f.photo}" class="shoe-preview">`:`<div class="photo-placeholder">${ICO.camera}<span>Trykk for å laste opp</span></div>`}
+      </div>
+      <input type="file" id="shoePhotoInput" accept="image/*" style="display:none" onchange="handleShoePhoto(this)">
+      <div class="form-actions"><button class="btn-secondary" onclick="state.showShoeForm=false;render()">Avbryt</button><button class="btn-primary" onclick="saveShoe()">Lagre</button></div>
+    </div>`;
+  }else{
+    formHtml=`<button class="btn-primary add-log-btn" onclick="state.showShoeForm=true;state.shoeForm={name:'',type:'Asfalt',photo:''};render()">${ICO.plus} Legg til sko</button>`;
+  }
+
+  const shoeCards=shoes.length?shoes.map(s=>{
+    const stats=getShoeStats(s.id);
+    const typeEmoji=s.type==='Asfalt'?'🛣️':s.type==='Konkurranse'?'🏁':s.type==='Terreng'?'⛰️':'🧊';
+    return`<div class="shoe-card ${s.retired?'retired':''}">
+      <div class="shoe-card-top">
+        ${s.photo?`<img src="${s.photo}" class="shoe-thumb">`:`<div class="shoe-thumb-placeholder">👟</div>`}
+        <div class="shoe-info">
+          <div class="shoe-name">${s.name}${s.retired?' <span class="retired-badge">Pensjonert</span>':''}</div>
+          <div class="shoe-type">${typeEmoji} ${s.type}</div>
+        </div>
+        <button class="shoe-menu-btn" onclick="toggleShoeMenu('${s.id}')">⋮</button>
+      </div>
+      <div class="shoe-stats-row">
+        <div class="shoe-stat"><span class="shoe-stat-val">${stats.totalKm.toFixed(1)}</span><span class="shoe-stat-lbl">km</span></div>
+        <div class="shoe-stat"><span class="shoe-stat-val">${stats.runCount}</span><span class="shoe-stat-lbl">løp</span></div>
+        <div class="shoe-stat"><span class="shoe-stat-val">${stats.avgKm}</span><span class="shoe-stat-lbl">snitt km</span></div>
+      </div>
+      <div class="shoe-menu hide" id="shoe-menu-${s.id}">
+        ${s.retired?`<button onclick="unretireShoe('${s.id}')">Aktiver igjen</button>`:`<button onclick="retireShoe('${s.id}')">Pensjoner</button>`}
+        <button class="danger-text" onclick="if(confirm('Slette ${s.name}?'))deleteShoe('${s.id}')">Slett</button>
+      </div>
+    </div>`;
+  }).join(''):`<div class="empty-log">Ingen sko lagt til ennå.</div>`;
+
+  return`${formHtml}<div class="shoe-list">${shoeCards}</div>`;
+}
+
+function handleShoePhoto(input){
+  const file=input.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=function(e){
+    // Resize to save localStorage space
+    const img=new Image();
+    img.onload=function(){
+      const canvas=document.createElement('canvas');
+      const max=300;
+      let w=img.width,h=img.height;
+      if(w>h){h=h*(max/w);w=max}else{w=w*(max/h);h=max}
+      canvas.width=w;canvas.height=h;
+      canvas.getContext('2d').drawImage(img,0,0,w,h);
+      state.shoeForm.photo=canvas.toDataURL('image/jpeg',0.7);
+      render();
+    };
+    img.src=e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function saveShoe(){
+  const f=state.shoeForm;if(!f.name.trim())return;
+  state.shoes.push({id:Date.now().toString(),name:f.name.trim(),type:f.type,photo:f.photo,retired:false});
+  SS('shoes',state.shoes);state.showShoeForm=false;render();
+}
+function retireShoe(id){const s=state.shoes.find(s=>s.id===id);if(s){s.retired=true;SS('shoes',state.shoes);render()}}
+function unretireShoe(id){const s=state.shoes.find(s=>s.id===id);if(s){s.retired=false;SS('shoes',state.shoes);render()}}
+function deleteShoe(id){state.shoes=state.shoes.filter(s=>s.id!==id);SS('shoes',state.shoes);render()}
+function toggleShoeMenu(id){const el=document.getElementById('shoe-menu-'+id);if(el)el.classList.toggle('hide')}
+
+function saveLog(){
+  const f=state.logForm;if(!f.distance||!f.duration)return;
+  state.profile.logs=state.profile.logs||[];state.profile.logs.push({...f});
+  SS('profile',state.profile);state.showLogForm=false;
+  state.logForm={date:new Date().toISOString().slice(0,10),type:'Rolig løp',distance:'',duration:'',feeling:'Ok',notes:'',shoeId:''};
+  render();
+}
+
+function renderSettings(){
+  const p=state.profile;
+  const ss=state.stravaStatus;
+  const statusHtml=ss==='connected'?`<div class="strava-status connected">${ICO.check} Koblet til Strava</div>`:ss==='connecting'?`<div class="strava-status connecting">Kobler til...</div>`:ss==='error'?`<div class="strava-status error">⚠️ Tilkobling feilet</div>`:'';
+
+  return`<div class="settings-page">
+    <h2 class="settings-title">Innstillinger</h2>
+    <button class="settings-row" onclick="state.editingProfile=true;state.onboardingStep=0;state.onboardingForm={...state.profile};render()">
+      ${ICO.user}<div><div class="settings-row-title">Rediger profil</div><div class="settings-row-sub">${p.name} · ${p.goal}</div></div><span class="settings-arrow">→</span>
+    </button>
+    <div class="strava-setup">
+      <div class="strava-header"><span class="strava-logo">${ICO.strava}</span><h3>Koble til Strava</h3></div>
+      ${statusHtml}
+      <div class="strava-guide">
+        <p class="guide-title">Slik gjør du (engangsoppsett):</p>
+        <div class="guide-step"><span class="step-num">1</span><span>Gå til <strong>strava.com/settings/api</strong> og opprett en app</span></div>
+        <div class="guide-step"><span class="step-num">2</span><span>Kopier <strong>Client ID</strong> og <strong>Client Secret</strong></span></div>
+        <div class="guide-step"><span class="step-num">3</span><span>Åpne autorisasjonslenken (bytt ut [ID]):</span></div>
+        <div class="guide-url">https://www.strava.com/oauth/authorize?client_id=<strong>[ID]</strong>&response_type=code&redirect_uri=http://localhost&scope=read,activity:read_all&approval_prompt=force</div>
+        <div class="guide-step"><span class="step-num">4</span><span>Kopier <strong>code=</strong>-verdien fra URL-en</span></div>
+      </div>
+      <div class="strava-form">
+        <label>Client ID</label><input type="text" id="strClientId" placeholder="12345" value="${state.stravaCreds.clientId||''}">
+        <label>Client Secret</label><input type="password" id="strClientSecret" placeholder="abc123..." value="${state.stravaCreds.clientSecret||''}">
+        <label>Autorisasjonskode</label><input type="text" id="strCode" placeholder="Koden fra URL-en">
+        <button class="btn-strava" onclick="doStravaConnect()">🔗 Koble til Strava</button>
+      </div>
+    </div>
+    <button class="reset-btn" onclick="if(confirm('Er du sikker? Alt slettes.')){localStorage.clear();location.reload()}">Nullstill alt</button>
+  </div>`;
+}
+function doStravaConnect(){
+  const cid=document.getElementById('strClientId').value;
+  const cs=document.getElementById('strClientSecret').value;
+  const code=document.getElementById('strCode').value;
+  if(cid&&cs&&code)stravaConnect({clientId:cid,clientSecret:cs,code});
+}
+
+// Auto-refresh Strava on load
+if(state.stravaCreds.refreshToken){state.stravaStatus='connected';setTimeout(stravaRefresh,500)}
+
+render();
+</script>
+</body>
+</html>
