@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="no">
 <head>
@@ -5,18 +6,34 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="theme-color" content="#0a0f1a">
+<meta name="theme-color" content="#0a0f1a" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f5f6f8" media="(prefers-color-scheme: light)">
 <title>Løpetrener AI</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏃</text></svg>">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,500;0,9..40,700;1,9..40,400&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
---bg:#0a0f1a;--surface:#111827;--surface2:#1a2236;
---border:#1e2a42;--text:#e8ecf4;--text2:#8896b0;
 --accent:#22d67a;--accent2:#1ab864;--accent-glow:rgba(34,214,122,0.15);
 --strava:#fc4c02;--strava-glow:rgba(252,76,2,0.12);
 --danger:#ef4444;--radius:14px;--radius-sm:10px;
+/* Dark mode (default) */
+--bg:#0a0f1a;--surface:#111827;--surface2:#1a2236;
+--border:#1e2a42;--text:#e8ecf4;--text2:#8896b0;
+}
+@media(prefers-color-scheme:light){
+:root{
+--bg:#f5f6f8;--surface:#ffffff;--surface2:#edf0f4;
+--border:#dce1e8;--text:#1a1d23;--text2:#5f6b7a;
+--accent-glow:rgba(34,180,100,0.12);--strava-glow:rgba(252,76,2,0.08);
+}
+.msg.user .msg-bubble{color:#fff}
+.btn-primary{color:#fff}
+.send-btn{color:#fff}
+.accent-card{border-color:var(--accent)}
+.accent-card::before{background:radial-gradient(circle at 0% 50%,rgba(34,214,122,0.08),transparent 60%)}
+.sub-tab.active{color:#fff}
+.api-setup h2,.settings-title{color:var(--text)}
 }
 html,body{height:100%;overflow:hidden}
 body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text)}
