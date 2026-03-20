@@ -306,7 +306,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text)}
 .stats-year-label{font-size:13px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px}
 .stats-big{font-size:32px;font-weight:700;font-family:'Space Mono',monospace;color:var(--text);line-height:1.1}
 .stats-big.accent{color:var(--accent)}
-.stats-small{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px}
+.stats-small{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
+.stats-secondary{font-size:14px;color:var(--text2);margin-top:4px}
 .stats-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:16px}
 .stats-card-title{font-size:14px;font-weight:700;margin-bottom:12px;color:var(--text2)}
 .bar-chart{width:100%;height:auto;display:block}
@@ -1052,14 +1053,14 @@ function renderStats(){
     <div class="stats-compare">
       <div class="stats-col">
         <div class="stats-year-label">${lastYear}</div>
-        <div class="stats-big">${countLast}</div><div class="stats-small">løp</div>
         <div class="stats-big">${kmLast.toFixed(0)}</div><div class="stats-small">km</div>
+        <div class="stats-secondary">${countLast} løp</div>
       </div>
       <div class="stats-divider"></div>
       <div class="stats-col">
         <div class="stats-year-label">${thisYear}</div>
-        <div class="stats-big accent">${countThis}</div><div class="stats-small">løp</div>
         <div class="stats-big accent">${kmThis.toFixed(0)}</div><div class="stats-small">km</div>
+        <div class="stats-secondary">${countThis} løp</div>
       </div>
     </div>
 
