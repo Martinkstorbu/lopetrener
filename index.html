@@ -296,6 +296,31 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text)}
 .ai-summary-body .bold{font-weight:700}
 .ai-summary-body .li{padding-left:8px}
 .ai-summary-body p{margin-bottom:2px}
+
+/* Stats page */
+.stats-page{padding-bottom:20px}
+.stats-title{font-size:22px;font-weight:700;margin-bottom:20px}
+.stats-compare{display:flex;align-items:stretch;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:20px;gap:0}
+.stats-col{flex:1;text-align:center}
+.stats-divider{width:1px;background:var(--border);margin:0 16px}
+.stats-year-label{font-size:13px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px}
+.stats-big{font-size:32px;font-weight:700;font-family:'Space Mono',monospace;color:var(--text);line-height:1.1}
+.stats-big.accent{color:var(--accent)}
+.stats-small{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px}
+.stats-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:16px}
+.stats-card-title{font-size:14px;font-weight:700;margin-bottom:12px;color:var(--text2)}
+.bar-chart{width:100%;height:auto;display:block}
+.pie-row{display:flex;align-items:center;gap:20px}
+.pie-chart{width:100px;height:100px;flex-shrink:0}
+.pie-legend{display:flex;flex-direction:column;gap:8px}
+.pie-legend-item{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:500}
+.pie-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0}
+.stats-shoe-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:16px}
+.stats-shoe-label{font-size:14px;font-weight:700;color:var(--text2);margin-bottom:10px}
+.stats-shoe-item{display:flex;align-items:center;gap:8px;font-size:14px;padding:6px 0}
+.stats-shoe-item:not(:last-child){border-bottom:1px solid var(--border)}
+.stats-shoe-rank{font-weight:700;color:var(--accent);font-family:'Space Mono',monospace;min-width:20px}
+.stats-shoe-cnt{margin-left:auto;color:var(--text2);font-size:13px;font-family:'Space Mono',monospace}
 </style>
 </head>
 <body>
@@ -548,7 +573,7 @@ function render(){
       <div class="page ${state.tab==='settings'?'active':''}" id="page-settings">${renderSettings()}</div>
     </div>
     <nav class="tab-bar">
-      ${['home|run|Hjem','coach|chat|Trener','log|log|Logg','settings|gear|Innstillinger'].map(t=>{const[id,ic,lb]=t.split('|');return`<button class="tab ${state.tab===id?'active':''}" onclick="switchTab('${id}')">${ICO[ic]}<span>${lb}</span></button>`}).join('')}
+      ${['home|run|Hjem','coach|chat|Trener','log|log|Aktivitet','settings|gear|Innstillinger'].map(t=>{const[id,ic,lb]=t.split('|');return`<button class="tab ${state.tab===id?'active':''}" onclick="switchTab('${id}')">${ICO[ic]}<span>${lb}</span></button>`}).join('')}
     </nav>`;
 }
 
@@ -678,8 +703,9 @@ function renderLog(){
     <div class="sub-tabs">
       <button class="sub-tab ${st==='runs'?'active':''}" onclick="state.logSubTab='runs';render()">Økter</button>
       <button class="sub-tab ${st==='shoes'?'active':''}" onclick="state.logSubTab='shoes';render()">👟 Sko</button>
+      <button class="sub-tab ${st==='stats'?'active':''}" onclick="state.logSubTab='stats';render()">📊 Statistikk</button>
     </div>
-    ${st==='runs'?renderLogRuns():renderShoes()}
+    ${st==='runs'?renderLogRuns():st==='shoes'?renderShoes():renderStats()}
   </div>`;
 }
 
@@ -933,6 +959,138 @@ function saveLog(){
   SS('profile',state.profile);state.showLogForm=false;
   state.logForm={date:new Date().toISOString().slice(0,10),type:'Rolig løp',distance:'',duration:'',feeling:'Ok',notes:'',shoeId:''};
   render();
+}
+
+// ─── Statistics ───
+function renderStats(){
+  const runs=(state.stravaActivities||[]).filter(a=>a.type==='Run'||a.type==='TrailRun');
+  const now=new Date();
+  const thisYear=now.getFullYear();
+  const lastYear=thisYear-1;
+
+  const runsThisYear=runs.filter(a=>new Date(a.start_date_local).getFullYear()===thisYear);
+  const runsLastYear=runs.filter(a=>new Date(a.start_date_local).getFullYear()===lastYear);
+
+  const kmThis=runsThisYear.reduce((s,a)=>s+a.distance/1000,0);
+  const kmLast=runsLastYear.reduce((s,a)=>s+a.distance/1000,0);
+  const countThis=runsThisYear.length;
+  const countLast=runsLastYear.length;
+
+  const longestEver=runs.length?Math.max(...runs.map(a=>a.distance/1000)):0;
+  const longestYear=runsThisYear.length?Math.max(...runsThisYear.map(a=>a.distance/1000)):0;
+
+  const elevThis=runsThisYear.reduce((s,a)=>s+(a.total_elevation_gain||0),0);
+
+  // Runs per week this year
+  const dayOfYear=Math.floor((now-new Date(thisYear,0,1))/(86400000))+1;
+  const weeksElapsed=Math.max(1,dayOfYear/7);
+  const runsPerWeek=(countThis/weeksElapsed).toFixed(1);
+
+  // Monthly km this year
+  const monthlyKm=Array(12).fill(0);
+  runsThisYear.forEach(a=>{const m=new Date(a.start_date_local).getMonth();monthlyKm[m]+=a.distance/1000});
+  const maxMonthKm=Math.max(...monthlyKm,1);
+  const monthNames=['Jan','Feb','Mar','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Des'];
+
+  // Run vs Trail pie
+  const roadCount=runs.filter(a=>a.type==='Run').length;
+  const trailCount=runs.filter(a=>a.type==='TrailRun').length;
+  const totalType=roadCount+trailCount||1;
+  const roadPct=Math.round(roadCount/totalType*100);
+  const trailPct=100-roadPct;
+
+  // Most popular shoes
+  function topShoes(runList){
+    const counts={};
+    runList.forEach(a=>{const sid=state.shoeMap[a.id];if(sid){counts[sid]=(counts[sid]||0)+1}});
+    // Also manual logs
+    (state.profile.logs||[]).forEach(l=>{if(l.shoeId){const yr=new Date(l.date).getFullYear();if(runList===runs||yr===thisYear)counts[l.shoeId]=(counts[l.shoeId]||0)+1}});
+    return Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([id,cnt])=>{
+      const s=state.shoes.find(s=>s.id===id);return s?{name:s.name,count:cnt,type:s.type}:null;
+    }).filter(Boolean);
+  }
+  const topShoesAll=topShoes(runs);
+  const topShoesYear=topShoes(runsThisYear);
+
+  // Bar chart SVG
+  const barW=Math.floor(280/12);
+  const barH=120;
+  const bars=monthlyKm.map((km,i)=>{
+    const h=maxMonthKm>0?Math.max(2,km/maxMonthKm*barH):0;
+    const x=i*barW+Math.floor(barW/2)-8;
+    const isPast=i<=now.getMonth();
+    return`<rect x="${x}" y="${barH-h}" width="16" rx="4" height="${h}" fill="${isPast?'var(--accent)':'var(--border)'}" opacity="${isPast?1:0.3}"/>
+      <text x="${x+8}" y="${barH+14}" text-anchor="middle" fill="var(--text2)" font-size="9" font-family="DM Sans">${monthNames[i]}</text>
+      ${km>0?`<text x="${x+8}" y="${barH-h-4}" text-anchor="middle" fill="var(--text)" font-size="9" font-weight="600" font-family="Space Mono">${Math.round(km)}</text>`:''}`;
+  }).join('');
+  const barChart=`<svg viewBox="0 0 ${barW*12} ${barH+20}" class="bar-chart">${bars}</svg>`;
+
+  // Pie chart SVG
+  const pieR=50,pieC=60;
+  const roadAngle=roadPct/100*360;
+  function pieArc(start,end,color){
+    if(end-start>=360)return`<circle cx="${pieC}" cy="${pieC}" r="${pieR}" fill="${color}"/>`;
+    const s=start-90,e=start+end-90;
+    const sr=s*Math.PI/180,er=e*Math.PI/180;
+    const x1=pieC+pieR*Math.cos(sr),y1=pieC+pieR*Math.sin(sr);
+    const x2=pieC+pieR*Math.cos(er),y2=pieC+pieR*Math.sin(er);
+    const large=end>180?1:0;
+    return`<path d="M${pieC},${pieC} L${x1},${y1} A${pieR},${pieR} 0 ${large} 1 ${x2},${y2} Z" fill="${color}"/>`;
+  }
+  const pieChart=trailCount===0?`<circle cx="${pieC}" cy="${pieC}" r="${pieR}" fill="var(--accent)"/>`
+    :roadCount===0?`<circle cx="${pieC}" cy="${pieC}" r="${pieR}" fill="var(--strava)"/>`
+    :`${pieArc(0,roadAngle,'var(--accent)')}${pieArc(roadAngle,360-roadAngle,'var(--strava)')}`;
+
+  const shoeList=(list,label)=>list.length?`<div class="stats-shoe-section"><div class="stats-shoe-label">${label}</div>${list.map((s,i)=>{
+    const emoji=s.type==='Asfalt'?'🛣️':s.type==='Konkurranse'?'🏁':s.type==='Terreng'?'⛰️':'🧊';
+    return`<div class="stats-shoe-item"><span class="stats-shoe-rank">${i+1}.</span><span>${emoji} ${s.name}</span><span class="stats-shoe-cnt">${s.count} løp</span></div>`;
+  }).join('')}</div>`:'';
+
+  return`<div class="stats-page">
+    <h2 class="stats-title">Statistikk</h2>
+
+    <div class="stats-compare">
+      <div class="stats-col">
+        <div class="stats-year-label">${lastYear}</div>
+        <div class="stats-big">${countLast}</div><div class="stats-small">løp</div>
+        <div class="stats-big">${kmLast.toFixed(0)}</div><div class="stats-small">km</div>
+      </div>
+      <div class="stats-divider"></div>
+      <div class="stats-col">
+        <div class="stats-year-label">${thisYear}</div>
+        <div class="stats-big accent">${countThis}</div><div class="stats-small">løp</div>
+        <div class="stats-big accent">${kmThis.toFixed(0)}</div><div class="stats-small">km</div>
+      </div>
+    </div>
+
+    <div class="detail-stats-grid" style="margin-bottom:20px">
+      <div class="detail-stat"><span class="detail-stat-val">${longestEver.toFixed(1)}</span><span class="detail-stat-lbl">lengste (totalt)</span></div>
+      <div class="detail-stat"><span class="detail-stat-val">${longestYear.toFixed(1)}</span><span class="detail-stat-lbl">lengste (${thisYear})</span></div>
+      <div class="detail-stat"><span class="detail-stat-val">${runsPerWeek}</span><span class="detail-stat-lbl">løp/uke snitt</span></div>
+      <div class="detail-stat"><span class="detail-stat-val">${Math.round(elevThis)}</span><span class="detail-stat-lbl">stigning ${thisYear} (m)</span></div>
+    </div>
+
+    <div class="stats-card">
+      <div class="stats-card-title">Distanse per måned ${thisYear}</div>
+      ${barChart}
+    </div>
+
+    <div class="stats-card">
+      <div class="stats-card-title">Asfalt vs. terreng (totalt)</div>
+      <div class="pie-row">
+        <svg viewBox="0 0 120 120" class="pie-chart">${pieChart}</svg>
+        <div class="pie-legend">
+          <div class="pie-legend-item"><span class="pie-dot" style="background:var(--accent)"></span>Asfalt ${roadPct}%</div>
+          <div class="pie-legend-item"><span class="pie-dot" style="background:var(--strava)"></span>Terreng ${trailPct}%</div>
+        </div>
+      </div>
+    </div>
+
+    ${shoeList(topShoesAll,'Mest brukte sko (totalt)')}
+    ${shoeList(topShoesYear,'Mest brukte sko ('+thisYear+')')}
+
+    ${!runs.length?'<div class="empty-log">Koble til Strava for å se statistikk.</div>':''}
+  </div>`;
 }
 
 function renderSettings(){
