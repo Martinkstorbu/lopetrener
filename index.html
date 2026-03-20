@@ -252,6 +252,50 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text)}
 .shoe-edit-row input:focus{border-color:var(--accent)}
 .shoe-edit-offsets .form-actions{margin-top:10px}
 .shoe-edit-offsets .btn-primary,.shoe-edit-offsets .btn-secondary{padding:8px 16px;font-size:13px}
+
+/* Chat list */
+.chat-list-page{padding:20px 16px}
+.chat-list-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.chat-list-header h2{font-size:22px;font-weight:700}
+.chat-list-sub{font-size:12px;color:var(--accent);margin-bottom:16px}
+.chat-history-list{display:flex;flex-direction:column;gap:8px}
+.chat-history-item{padding:14px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;transition:border-color .2s}
+.chat-history-item:hover{border-color:var(--accent)}
+.chat-hist-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.chat-hist-title{font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1}
+.chat-delete-btn{background:none;border:none;color:var(--text2);font-size:16px;cursor:pointer;padding:2px 6px;line-height:1;flex-shrink:0}
+.chat-delete-btn:hover{color:var(--danger)}
+.chat-hist-meta{font-size:12px;color:var(--text2);margin-top:4px}
+.chat-topbar{padding:10px 16px;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0}
+.chat-back-btn{background:none;border:none;color:var(--accent);font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;padding:4px 0}
+
+/* Clickable log entries */
+.log-entry.clickable{cursor:pointer;transition:border-color .2s}
+.log-entry.clickable:hover{border-color:var(--accent)}
+
+/* Activity detail */
+.activity-detail{padding:20px 16px}
+.detail-header{margin:16px 0}
+.detail-title{font-size:22px;font-weight:700}
+.detail-meta{font-size:13px;color:var(--text2);margin-top:4px;display:flex;align-items:center;gap:8px}
+.detail-stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}
+.detail-stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 10px;text-align:center}
+.detail-stat-val{display:block;font-size:20px;font-weight:700;font-family:'Space Mono',monospace;color:var(--accent)}
+.detail-stat-lbl{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-top:2px}
+.detail-shoe{font-size:14px;color:var(--text2);margin-bottom:12px}
+.detail-notes{font-size:14px;color:var(--text2);font-style:italic;padding:12px;background:var(--surface);border-radius:var(--radius-sm);border:1px solid var(--border);margin-bottom:12px}
+.strava-link{display:inline-flex;align-items:center;gap:6px;color:var(--strava);font-size:14px;font-weight:600;text-decoration:none;padding:10px 16px;background:var(--strava-glow);border-radius:var(--radius-sm);margin-bottom:16px}
+.strava-link svg{width:16px;height:16px}
+
+/* AI Summary */
+.ai-summary-btn{width:100%;display:flex;align-items:center;justify-content:center;gap:6px;padding:12px;font-size:14px}
+.ai-summary{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-top:4px}
+.ai-summary-header{font-weight:700;font-size:14px;margin-bottom:8px}
+.ai-summary-body{font-size:14px;line-height:1.55}
+.ai-summary-body h4{font-weight:700;margin:8px 0 4px}
+.ai-summary-body .bold{font-weight:700}
+.ai-summary-body .li{padding-left:8px}
+.ai-summary-body p{margin-bottom:2px}
 </style>
 </head>
 <body>
@@ -272,6 +316,12 @@ let state = {
   stravaStatus: LS('stravaCreds')?.refreshToken ? 'saved' : 'disconnected',
   chatMessages: [],
   chatLoading: false,
+  chatHistory: LS('chatHistory') || [],
+  activeChatId: null,
+  chatView: 'list',
+  activeActivity: null,
+  activitySummaries: LS('activitySummaries') || {},
+  summaryLoading: false,
   onboardingStep: 0,
   onboardingForm: {},
   showLogForm: false,
@@ -439,17 +489,33 @@ function fmtMsg(text){
 
 async function sendChat(text){
   if(!text.trim()||state.chatLoading)return;
+  // Create new chat if none active
+  if(!state.activeChatId){
+    const id=Date.now().toString();
+    const title=text.slice(0,50)+(text.length>50?'...':'');
+    state.activeChatId=id;
+    state.chatHistory.unshift({id,title,messages:[],updatedAt:new Date().toISOString()});
+  }
   state.chatMessages.push({role:'user',content:text});
-  state.chatLoading=true;render();
+  state.chatLoading=true;state.chatView='chat';render();
   try{
     const reply=await askCoach(state.chatMessages);
     state.chatMessages.push({role:'assistant',content:reply});
   }catch(e){state.chatMessages.push({role:'assistant',content:`⚠️ Feil: ${e.message}`})}
-  state.chatLoading=false;render();
+  state.chatLoading=false;
+  // Save to history
+  const chat=state.chatHistory.find(c=>c.id===state.activeChatId);
+  if(chat){chat.messages=[...state.chatMessages];chat.updatedAt=new Date().toISOString()}
+  SS('chatHistory',state.chatHistory);
+  render();
   setTimeout(()=>{const el=document.getElementById('chat-bottom');el&&el.scrollIntoView({behavior:'smooth'})},50);
 }
 
-function quickAsk(msg){state.chatMessages=[];state.tab='coach';render();setTimeout(()=>sendChat(msg),100)}
+function quickAsk(msg){state.chatMessages=[];state.activeChatId=null;state.chatView='chat';state.tab='coach';render();setTimeout(()=>sendChat(msg),100)}
+function newChat(){state.chatMessages=[];state.activeChatId=null;state.chatView='chat';render()}
+function openChat(id){const c=state.chatHistory.find(h=>h.id===id);if(c){state.activeChatId=id;state.chatMessages=[...c.messages];state.chatView='chat';render()}}
+function deleteChat(id){state.chatHistory=state.chatHistory.filter(c=>c.id!==id);SS('chatHistory',state.chatHistory);if(state.activeChatId===id){state.activeChatId=null;state.chatMessages=[]}render()}
+function backToChats(){state.chatView='list';render()}
 
 // ─── Render ───
 function render(){
@@ -463,7 +529,7 @@ function render(){
   app.innerHTML=`
     <div class="app-content">
       <div class="page ${state.tab==='home'?'active':''}" id="page-home">${renderDashboard(runs)}</div>
-      <div class="page ${state.tab==='coach'?'active':''}" id="page-coach" style="display:${state.tab==='coach'?'flex':'none'};flex-direction:column;height:100%">${renderChat(runs)}</div>
+      <div class="page ${state.tab==='coach'?'active':''}" id="page-coach" style="display:${state.tab==='coach'?'flex':'none'};flex-direction:column;height:100%;overflow:${state.chatView==='list'?'auto':'hidden'}">${renderChat(runs)}</div>
       <div class="page ${state.tab==='log'?'active':''}" id="page-log">${renderLog()}</div>
       <div class="page ${state.tab==='settings'?'active':''}" id="page-settings">${renderSettings()}</div>
     </div>
@@ -472,7 +538,7 @@ function render(){
     </nav>`;
 }
 
-function switchTab(t){state.tab=t;if(t==='coach'&&state.chatMessages.length===0){}render();if(t==='coach')setTimeout(()=>{const el=document.getElementById('chat-bottom');el&&el.scrollIntoView()},50)}
+function switchTab(t){state.tab=t;if(t==='coach'&&!state.activeChatId)state.chatView='list';state.activeActivity=null;render();if(t==='coach'&&state.chatView==='chat')setTimeout(()=>{const el=document.getElementById('chat-bottom');el&&el.scrollIntoView()},50)}
 
 function renderApiSetup(){
   return`<div class="api-setup">
@@ -551,6 +617,7 @@ function renderDashboard(runs){
 }
 
 function renderChat(runs){
+  if(state.chatView==='list')return renderChatList(runs);
   const rc=runs?.length||0;
   let msgs='';
   if(state.chatMessages.length===0&&!state.chatLoading){
@@ -559,8 +626,35 @@ function renderChat(runs){
     msgs=state.chatMessages.map(m=>`<div class="msg ${m.role}"><div class="msg-bubble">${m.role==='assistant'?fmtMsg(m.content):m.content}</div></div>`).join('');
     if(state.chatLoading)msgs+=`<div class="msg assistant"><div class="msg-bubble loading-bubble"><span class="dot-loader"><span></span><span></span><span></span></span></div></div>`;
   }
-  return`<div class="chat-messages">${msgs}<div id="chat-bottom"></div></div>
+  return`<div class="chat-topbar"><button class="chat-back-btn" onclick="backToChats()">← Samtaler</button></div>
+    <div class="chat-messages">${msgs}<div id="chat-bottom"></div></div>
     <div class="chat-input-bar"><input class="chat-input" id="chatInput" placeholder="Spør treneren..." onkeydown="if(event.key==='Enter')chatSend()"><button class="send-btn" onclick="chatSend()">${ICO.send}</button></div>`;
+}
+function renderChatList(runs){
+  const rc=runs?.length||0;
+  const history=state.chatHistory;
+  return`<div class="chat-list-page">
+    <div class="chat-list-header">
+      <h2>Treneren</h2>
+      <button class="btn-primary" style="padding:8px 16px;font-size:13px" onclick="newChat()">${ICO.plus} Ny samtale</button>
+    </div>
+    ${rc?`<p class="chat-list-sub">📡 ${rc} løpeøkter fra Strava lastet inn</p>`:''}
+    <div class="chat-history-list">${history.length?history.map(c=>{
+      const date=new Date(c.updatedAt);
+      const ago=timeAgo(date);
+      const msgCount=c.messages.filter(m=>m.role==='user').length;
+      return`<div class="chat-history-item" onclick="openChat('${c.id}')">
+        <div class="chat-hist-top"><span class="chat-hist-title">${c.title}</span><button class="chat-delete-btn" onclick="event.stopPropagation();if(confirm('Slette samtalen?'))deleteChat('${c.id}')">✕</button></div>
+        <div class="chat-hist-meta">${ago} · ${msgCount} melding${msgCount!==1?'er':''}</div>
+      </div>`;
+    }).join(''):`<div class="chat-empty"><div class="chat-empty-icon">💬</div><p>Ingen samtaler ennå</p><p class="chat-empty-sub">Trykk "Ny samtale" eller bruk snarveiene på hjem-skjermen</p></div>`}</div>
+  </div>`;
+}
+function timeAgo(date){
+  const s=Math.floor((Date.now()-date)/1000);
+  if(s<60)return'Nå nettopp';if(s<3600)return`${Math.floor(s/60)} min siden`;
+  if(s<86400)return`${Math.floor(s/3600)}t siden`;if(s<604800)return`${Math.floor(s/86400)}d siden`;
+  return date.toLocaleDateString('no-NO',{day:'numeric',month:'short'});
 }
 function chatSend(){const el=document.getElementById('chatInput');if(el){sendChat(el.value);el.value=''}}
 
@@ -576,10 +670,11 @@ function renderLog(){
 }
 
 function renderLogRuns(){
+  if(state.activeActivity) return renderActivityDetail();
   // Merge Strava runs + manual logs into one sorted list
   const stravaRuns=(state.stravaActivities||[]).filter(a=>a.type==='Run'||a.type==='TrailRun').map(a=>{
     const f=fmtActivity(a);
-    return {source:'strava',id:a.id.toString(),date:f.date,name:f.name,km:parseFloat(f.km),mins:f.mins,pace:f.pace,hr:f.hr,type:a.type==='TrailRun'?'Terreng':'Løp',shoeId:state.shoeMap[a.id]||''};
+    return {source:'strava',id:a.id.toString(),date:f.date,name:f.name,km:parseFloat(f.km),mins:f.mins,pace:f.pace,hr:f.hr,maxHr:f.maxHr,elev:f.elev,suffer:a.suffer_score,type:a.type==='TrailRun'?'Terreng':'Løp',shoeId:state.shoeMap[a.id]||'',stravaId:a.id};
   });
   const manualLogs=(state.profile.logs||[]).map((l,i)=>({source:'manual',id:'m'+i,date:l.date,name:l.type,km:parseFloat(l.distance)||0,mins:parseInt(l.duration)||0,type:l.type,feeling:l.feeling,shoeId:l.shoeId||'',notes:l.notes}));
   const all=[...stravaRuns,...manualLogs].sort((a,b)=>b.date.localeCompare(a.date));
@@ -607,14 +702,14 @@ function renderLogRuns(){
     formHtml=`<button class="btn-primary add-log-btn" onclick="state.showLogForm=true;render()">${ICO.plus} Logg manuell økt</button>`;
   }
 
-  const listHtml=all.length?all.map(l=>{
+  const listHtml=all.length?all.map((l,idx)=>{
     const shoe=l.shoeId?state.shoes.find(s=>s.id===l.shoeId):null;
     const srcBadge=l.source==='strava'?'<span class="src-badge strava-badge">Strava</span>':'<span class="src-badge manual-badge">Manuell</span>';
-    const shoeLabel=shoe?`<span class="shoe-tag">👟 ${shoe.name}</span>`:(shoes.length&&l.source==='strava'?`<select class="shoe-inline-select" onchange="assignShoe('${l.id}',this.value)">${shoeOpts}</select>`:'');
+    const shoeLabel=shoe?`<span class="shoe-tag">👟 ${shoe.name}</span>`:(shoes.length&&l.source==='strava'?`<select class="shoe-inline-select" onclick="event.stopPropagation()" onchange="assignShoe('${l.id}',this.value)">${shoeOpts}</select>`:'');
     const paceInfo=l.pace?` · ${l.pace} /km`:'';
     const hrInfo=l.hr?` · ♥ ${l.hr}`:'';
     const feelInfo=l.feeling?` · ${l.feeling==='Bra'?'😊':l.feeling==='Tungt'?'😓':'😐'}`:''
-    return`<div class="log-entry">
+    return`<div class="log-entry clickable" onclick="openActivity('${l.source}','${l.id}')">
       <div class="log-entry-header"><span class="log-entry-date">${l.date}</span>${srcBadge}</div>
       <div class="log-entry-type">${l.name}</div>
       <div class="log-entry-stats">${l.km} km · ${l.mins} min${paceInfo}${hrInfo}${feelInfo}</div>
@@ -632,6 +727,75 @@ function renderLogRuns(){
 function assignShoe(activityId,shoeId){
   if(shoeId){state.shoeMap[activityId]=shoeId}else{delete state.shoeMap[activityId]}
   SS('shoeMap',state.shoeMap);render();
+}
+
+function openActivity(source,id){
+  let act=null;
+  if(source==='strava'){
+    const raw=(state.stravaActivities||[]).find(a=>a.id.toString()===id);
+    if(raw){const f=fmtActivity(raw);act={source,id,date:f.date,name:f.name,km:parseFloat(f.km),mins:f.mins,pace:f.pace,hr:f.hr,maxHr:f.maxHr,elev:f.elev,suffer:raw.suffer_score,calories:raw.calories||null,shoeId:state.shoeMap[raw.id]||'',stravaId:raw.id,movingTime:raw.moving_time,elapsedTime:raw.elapsed_time,maxSpeed:raw.max_speed?((raw.max_speed*3.6).toFixed(1)):null};}
+  }else{
+    const idx=parseInt(id.slice(1));const l=(state.profile.logs||[])[idx];
+    if(l)act={source,id,date:l.date,name:l.type,km:parseFloat(l.distance)||0,mins:parseInt(l.duration)||0,feeling:l.feeling,shoeId:l.shoeId||'',notes:l.notes};
+  }
+  if(act){state.activeActivity=act;render()}
+}
+
+function renderActivityDetail(){
+  const a=state.activeActivity;if(!a)return'';
+  const shoe=a.shoeId?state.shoes.find(s=>s.id===a.shoeId):null;
+  const summary=state.activitySummaries[a.id]||null;
+  const srcBadge=a.source==='strava'?'<span class="src-badge strava-badge">Strava</span>':'<span class="src-badge manual-badge">Manuell</span>';
+
+  // Build stat cards
+  let stats=`<div class="detail-stat"><span class="detail-stat-val">${a.km}</span><span class="detail-stat-lbl">km</span></div>`;
+  stats+=`<div class="detail-stat"><span class="detail-stat-val">${a.mins}</span><span class="detail-stat-lbl">minutter</span></div>`;
+  if(a.pace)stats+=`<div class="detail-stat"><span class="detail-stat-val">${a.pace}</span><span class="detail-stat-lbl">min/km</span></div>`;
+  if(a.hr)stats+=`<div class="detail-stat"><span class="detail-stat-val">${a.hr}</span><span class="detail-stat-lbl">snitt puls</span></div>`;
+  if(a.maxHr)stats+=`<div class="detail-stat"><span class="detail-stat-val">${a.maxHr}</span><span class="detail-stat-lbl">maks puls</span></div>`;
+  if(a.elev)stats+=`<div class="detail-stat"><span class="detail-stat-val">${a.elev}m</span><span class="detail-stat-lbl">stigning</span></div>`;
+  if(a.suffer)stats+=`<div class="detail-stat"><span class="detail-stat-val">${a.suffer}</span><span class="detail-stat-lbl">suffer score</span></div>`;
+  if(a.calories)stats+=`<div class="detail-stat"><span class="detail-stat-val">${a.calories}</span><span class="detail-stat-lbl">kcal</span></div>`;
+  if(a.maxSpeed)stats+=`<div class="detail-stat"><span class="detail-stat-val">${a.maxSpeed}</span><span class="detail-stat-lbl">maks km/t</span></div>`;
+  if(a.feeling)stats+=`<div class="detail-stat"><span class="detail-stat-val">${a.feeling==='Bra'?'😊':a.feeling==='Tungt'?'😓':'😐'}</span><span class="detail-stat-lbl">følelse</span></div>`;
+
+  const stravaLink=a.stravaId?`<a href="https://www.strava.com/activities/${a.stravaId}" target="_blank" class="strava-link">${ICO.strava} Se på Strava</a>`:'';
+
+  const summaryHtml=summary?`<div class="ai-summary"><div class="ai-summary-header">🤖 AI-oppsummering</div><div class="ai-summary-body">${fmtMsg(summary)}</div></div>`
+    :state.summaryLoading?`<div class="ai-summary"><div class="ai-summary-header">🤖 Analyserer...</div><div class="ai-summary-body"><span class="dot-loader"><span></span><span></span><span></span></span></div></div>`
+    :`<button class="btn-secondary ai-summary-btn" onclick="summarizeActivity()">🤖 Oppsummer med AI</button>`;
+
+  return`<div class="activity-detail">
+    <button class="chat-back-btn" onclick="state.activeActivity=null;render()">← Tilbake</button>
+    <div class="detail-header">
+      <div class="detail-title">${a.name}</div>
+      <div class="detail-meta">${a.date} ${srcBadge}</div>
+    </div>
+    <div class="detail-stats-grid">${stats}</div>
+    ${shoe?`<div class="detail-shoe">👟 ${shoe.name}</div>`:''}
+    ${a.notes?`<div class="detail-notes">${a.notes}</div>`:''}
+    ${stravaLink}
+    ${summaryHtml}
+  </div>`;
+}
+
+async function summarizeActivity(){
+  const a=state.activeActivity;if(!a||state.summaryLoading)return;
+  state.summaryLoading=true;render();
+  let prompt=`Gi en kort oppsummering og analyse av denne løpeøkten:\n- Navn: ${a.name}\n- Dato: ${a.date}\n- Distanse: ${a.km} km\n- Tid: ${a.mins} min`;
+  if(a.pace)prompt+=`\n- Tempo: ${a.pace} min/km`;
+  if(a.hr)prompt+=`\n- Snitt puls: ${a.hr}`;
+  if(a.maxHr)prompt+=`\n- Maks puls: ${a.maxHr}`;
+  if(a.elev)prompt+=`\n- Stigning: ${a.elev}m`;
+  if(a.suffer)prompt+=`\n- Suffer score: ${a.suffer}`;
+  if(a.feeling)prompt+=`\n- Følelse: ${a.feeling}`;
+  prompt+=`\n\nVurder: Var dette en rolig (sone 1-2) eller hard (sone 4-5) økt basert på dataene? Passer den inn i 80/20-metoden? Gi 2-3 korte punkter med feedback og eventuelt tips til neste økt. Hold det kort og motiverende.`;
+  try{
+    const reply=await askCoach([{role:'user',content:prompt}]);
+    state.activitySummaries[a.id]=reply;
+    SS('activitySummaries',state.activitySummaries);
+  }catch(e){state.activitySummaries[a.id]=`⚠️ Feil: ${e.message}`}
+  state.summaryLoading=false;render();
 }
 
 function getShoeStats(shoeId){
