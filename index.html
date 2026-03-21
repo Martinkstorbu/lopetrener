@@ -133,8 +133,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text)}
 /* Goal card */
 .goal-card{background:var(--surface);border:0.5px solid var(--border);border-left:3px solid var(--accent);border-radius:var(--radius);padding:0;margin-bottom:16px;cursor:pointer;transition:border-color .2s;position:relative;overflow:hidden;min-height:150px}
 .goal-card:hover{border-color:var(--accent)}
-.goal-card-bg{position:absolute;top:0;right:0;bottom:0;width:55%;display:flex;align-items:center;justify-content:center;pointer-events:none;padding-right:10px}
-.gpx-route-svg{width:90%;height:75%;opacity:0.6}
+.goal-card-bg{position:absolute;top:0;right:0;bottom:0;width:55%;display:flex;align-items:center;justify-content:center;pointer-events:none;padding:10px}
+.goal-card-bg svg{width:90%!important;height:75%!important;opacity:0.2!important}
 .goal-card-content{position:relative;z-index:1;padding:20px}
 .goal-card-label{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.05em}
 .goal-card-title{font-size:20px;font-weight:700;margin-top:6px}
@@ -899,13 +899,13 @@ function renderDashboard(runs){
     const g=state.goal;
     const daysLeft=g.raceDate?Math.max(0,Math.ceil((new Date(g.raceDate)-now)/(86400000))):'—';
     const weeksLeft=typeof daysLeft==='number'?Math.ceil(daysLeft/7):'—';
-    const gpxRoute=state.gpxData?.routeSvg||'';
+    const gpxBgSvg=state.gpxData?(g.isTrail?state.gpxData.profileSvg:state.gpxData.routeSvg):'';
     const goalTitle=g.raceName||'Treningsmål';
     const goalDist=g.distance?' <span class="goal-pipe">|</span> '+g.distance:'';
     const elevation=state.gpxData?.elevation?`<div class="goal-card-elev">${state.gpxData.elevation} m stigning</div>`:'';
     const progressPct=g.raceDate?Math.min(100,Math.max(5,100-daysLeft/Math.max(1,(new Date(g.raceDate)-new Date(g.createdAt||now))/(86400000))*100)):0;
     goalCard=`<div class="goal-card" onclick="state.showGoalPage=true;render()">
-      ${gpxRoute?`<div class="goal-card-bg">${gpxRoute}</div>`:''}
+      ${gpxBgSvg?`<div class="goal-card-bg">${gpxBgSvg}</div>`:''}
       <div class="goal-card-content">
         <div class="goal-card-label">Aktivt mål</div>
         <div class="goal-card-title">${goalTitle}${goalDist}</div>
