@@ -131,8 +131,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text)}
 .method-btn.active{background:var(--accent);color:#0f1923}
 
 /* Goal card */
-.goal-card{background:var(--surface);border:0.5px solid var(--border);border-left:3px solid var(--accent);border-radius:var(--radius);padding:16px;margin-bottom:16px;cursor:pointer;transition:border-color .2s}
+.goal-card{background:var(--surface);border:0.5px solid var(--border);border-left:3px solid var(--accent);border-radius:var(--radius);padding:0;margin-bottom:16px;cursor:pointer;transition:border-color .2s;position:relative;overflow:hidden}
 .goal-card:hover{border-color:var(--accent)}
+.goal-card-bg{position:absolute;top:0;right:0;bottom:0;width:60%;display:flex;align-items:center;justify-content:flex-end;pointer-events:none;padding-right:10px}
+.gpx-route-svg{width:100%;height:100%;opacity:0.6}
+.goal-card-content{position:relative;z-index:1;padding:16px}
 .goal-card-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
 .goal-card-label{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.05em}
 .goal-card-title{font-size:18px;font-weight:700;margin-top:4px}
@@ -894,13 +897,19 @@ function renderDashboard(runs){
     const g=state.goal;
     const daysLeft=g.raceDate?Math.max(0,Math.ceil((new Date(g.raceDate)-now)/(86400000))):'—';
     const weeksLeft=typeof daysLeft==='number'?Math.ceil(daysLeft/7):'—';
+    const gpxRoute=state.gpxData?.routeSvg||'';
+    const goalTitle=g.raceName||'Treningsmål';
+    const goalDist=g.distance?` · ${g.distance}`:'';
     goalCard=`<div class="goal-card" onclick="state.showGoalPage=true;render()">
-      <div class="goal-card-top">
-        <div><div class="goal-card-label">Aktivt mål</div><div class="goal-card-title">${g.distance} ${g.time}</div></div>
-        <div class="goal-card-countdown"><div class="goal-countdown-num">${weeksLeft}</div><div class="goal-countdown-lbl">uker igjen</div></div>
+      ${gpxRoute?`<div class="goal-card-bg">${gpxRoute}</div>`:''}
+      <div class="goal-card-content">
+        <div class="goal-card-top">
+          <div><div class="goal-card-label">Aktivt mål</div><div class="goal-card-title">${goalTitle}${goalDist}${g.isTrail?' ⛰️':''}</div></div>
+          <div class="goal-card-countdown"><div class="goal-countdown-num">${weeksLeft}</div><div class="goal-countdown-lbl">uker igjen</div></div>
+        </div>
+        ${g.raceDate?`<div class="goal-progress-bar"><div class="goal-progress-fill" style="width:${g.raceDate?Math.min(100,Math.max(5,100-daysLeft/Math.max(1,(new Date(g.raceDate)-new Date(g.createdAt||now))/(86400000))*100)):0}%"></div></div>`:''}
+        <div class="goal-card-sub">${g.time?'Mål: '+g.time:''}${g.time&&g.raceDate?' — ':''}${g.raceDate||''}</div>
       </div>
-      ${g.raceDate?`<div class="goal-progress-bar"><div class="goal-progress-fill" style="width:${g.raceDate?Math.min(100,Math.max(5,100-daysLeft/Math.max(1,(new Date(g.raceDate)-new Date(g.createdAt||now))/(86400000))*100)):0}%"></div></div>`:''}
-      <div class="goal-card-sub">${g.raceName||'Generelt mål'}${g.raceDate?' — '+g.raceDate:''}${g.isTrail?' ⛰️':''}</div>
     </div>`;
   }else{
     goalCard=`<div class="goal-card-empty" onclick="state.showGoalPage=true;render()">
@@ -965,8 +974,9 @@ function renderGoalPage(){
     <div class="log-form">
       <label>Distanse</label>
       <div class="feeling-row">
-        ${['5 km','10 km','Halvmaraton'].map(d=>`<button class="feeling-btn ${(g.distance||'')=== d?'selected':''}" onclick="setGoalField('distance','${d}')">${d}</button>`).join('')}
+        ${['5 km','10 km','Halvmaraton'].map(d=>`<button class="feeling-btn ${(g.distance||'')=== d?'selected':''}" onclick="setGoalField('distance',(state.goal?.distance==='${d}')?'':'${d}')">${d}</button>`).join('')}
       </div>
+      <input type="text" id="goal-dist-custom" placeholder="Eller skriv egendefinert, f.eks. 18 km" value="${g.distance&&!['5 km','10 km','Halvmaraton'].includes(g.distance)?g.distance:''}" oninput="setGoalField('distance',this.value,true)" style="margin-top:8px">
 
       <label>Tidsmål</label>
       <input type="text" id="goal-time" placeholder="F.eks. 1:45:00" value="${g.time||''}" oninput="setGoalField('time',this.value,true)">
@@ -1043,12 +1053,25 @@ function handleGpxUpload(input){
       const points=sampled.map((e,i)=>`${(i/(sampled.length-1)*w).toFixed(1)},${(h-(e-eMin)/eRange*h).toFixed(1)}`).join(' ');
       const profileSvg=`<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:60px"><polyline points="${points}" fill="none" stroke="var(--accent)" stroke-width="1.5"/><polygon points="0,${h} ${points} ${w},${h}" fill="var(--accent)" opacity="0.15"/></svg>`;
 
-      state.gpxData={name:file.name,distance:totalDist.toFixed(1),elevation:Math.round(totalClimb),maxElev,minElev,profileSvg};
+      // Build route silhouette SVG (top-down view)
+      const lats=trkpts.map(p=>parseFloat(p.getAttribute('lat')));
+      const lons=trkpts.map(p=>parseFloat(p.getAttribute('lon')));
+      const latMin=Math.min(...lats),latMax=Math.max(...lats),lonMin=Math.min(...lons),lonMax=Math.max(...lons);
+      const latRange=latMax-latMin||0.001,lonRange=lonMax-lonMin||0.001;
+      const rw=300,rh=200;
+      const step2=Math.max(1,Math.floor(trkpts.length/200));
+      const routePts=[];
+      for(let i=0;i<trkpts.length;i+=step2){
+        const px=((parseFloat(trkpts[i].getAttribute('lon'))-lonMin)/lonRange*rw).toFixed(1);
+        const py=(rh-(parseFloat(trkpts[i].getAttribute('lat'))-latMin)/latRange*rh).toFixed(1);
+        routePts.push(`${px},${py}`);
+      }
+      const routeSvg=`<svg viewBox="0 0 ${rw} ${rh}" class="gpx-route-svg"><polyline points="${routePts.join(' ')}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" opacity="0.25"/></svg>`;
+
+      state.gpxData={name:file.name,distance:totalDist.toFixed(1),elevation:Math.round(totalClimb),maxElev,minElev,profileSvg,routeSvg};
       if(!state.goal)state.goal={distance:'',time:'',raceName:'',raceDate:'',isTrail:false,gpxInfo:'',createdAt:new Date().toISOString()};
       if(!state.goal.distance&&totalDist>0){
-        if(totalDist<7)state.goal.distance='5 km';
-        else if(totalDist<15)state.goal.distance='10 km';
-        else state.goal.distance='Halvmaraton';
+        state.goal.distance=totalDist.toFixed(1)+' km';
       }
       render();
     }catch(err){alert('Kunne ikke lese GPX-filen: '+err.message)}
