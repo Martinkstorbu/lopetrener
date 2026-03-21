@@ -459,6 +459,7 @@ async function saveToCloud(){
       shoeMap: state.shoeMap,
       method: state.method,
       goal: state.goal,
+      gpxData: state.gpxData,
       updatedAt: new Date().toISOString()
     };
     await window.fbSetDoc(window.fbDoc(window.fbDb, 'users', user.uid), data, {merge:true});
@@ -481,6 +482,7 @@ async function loadFromCloud(uid){
       if(d.shoeMap) { state.shoeMap = d.shoeMap; localStorage.setItem('rc_shoeMap', JSON.stringify(d.shoeMap)); }
       if(d.method) { state.method = d.method; localStorage.setItem('rc_method', JSON.stringify(d.method)); }
       if(d.goal !== undefined) { state.goal = d.goal; localStorage.setItem('rc_goal', JSON.stringify(d.goal)); }
+      if(d.gpxData !== undefined) { state.gpxData = d.gpxData; localStorage.setItem('rc_gpxData', JSON.stringify(d.gpxData)); }
     } else {
       // Cloud is empty — migrate existing localStorage data to cloud
       if(state.apiKey || state.profileDone) {
@@ -523,7 +525,7 @@ let state = {
   method: LS('method') || '80/20',
   goal: LS('goal') || null,
   showGoalPage: false,
-  gpxData: null,
+  gpxData: LS('gpxData') || null,
 };
 
 // ─── Constants ───
@@ -904,7 +906,7 @@ function renderDashboard(runs){
       ${gpxRoute?`<div class="goal-card-bg">${gpxRoute}</div>`:''}
       <div class="goal-card-content">
         <div class="goal-card-top">
-          <div><div class="goal-card-label">Aktivt mål</div><div class="goal-card-title">${goalTitle}${goalDist}${g.isTrail?' ⛰️':''}</div></div>
+          <div><div class="goal-card-label">Aktivt mål</div><div class="goal-card-title">${goalTitle}${goalDist}</div></div>
           <div class="goal-card-countdown"><div class="goal-countdown-num">${weeksLeft}</div><div class="goal-countdown-lbl">uker igjen</div></div>
         </div>
         ${g.raceDate?`<div class="goal-progress-bar"><div class="goal-progress-fill" style="width:${g.raceDate?Math.min(100,Math.max(5,100-daysLeft/Math.max(1,(new Date(g.raceDate)-new Date(g.createdAt||now))/(86400000))*100)):0}%"></div></div>`:''}
@@ -1001,7 +1003,7 @@ function renderGoalPage(){
       <input type="file" id="gpxInput" accept=".gpx" style="display:none" onchange="handleGpxUpload(this)">
 
       <div class="form-actions" style="margin-top:20px">
-        ${state.goal?`<button class="btn-secondary" onclick="if(confirm('Fjerne målet?')){state.goal=null;SS('goal',null);state.gpxData=null;state.showGoalPage=false;render()}">Fjern mål</button>`:''}
+        ${state.goal?`<button class="btn-secondary" onclick="if(confirm('Fjerne målet?')){state.goal=null;SS('goal',null);state.gpxData=null;SS('gpxData',null);state.showGoalPage=false;render()}">Fjern mål</button>`:''}
         <button class="btn-primary" onclick="saveGoal()">Lagre mål</button>
       </div>
     </div>
@@ -1069,6 +1071,7 @@ function handleGpxUpload(input){
       const routeSvg=`<svg viewBox="0 0 ${rw} ${rh}" class="gpx-route-svg"><polyline points="${routePts.join(' ')}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" opacity="0.25"/></svg>`;
 
       state.gpxData={name:file.name,distance:totalDist.toFixed(1),elevation:Math.round(totalClimb),maxElev,minElev,profileSvg,routeSvg};
+      SS('gpxData',state.gpxData);
       if(!state.goal)state.goal={distance:'',time:'',raceName:'',raceDate:'',isTrail:false,gpxInfo:'',createdAt:new Date().toISOString()};
       if(!state.goal.distance&&totalDist>0){
         state.goal.distance=totalDist.toFixed(1)+' km';
