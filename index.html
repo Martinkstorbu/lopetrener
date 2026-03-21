@@ -8,7 +8,9 @@
 <meta name="theme-color" content="#0f1923" media="(prefers-color-scheme: dark)">
 <meta name="theme-color" content="#f4f6f8" media="(prefers-color-scheme: light)">
 <title>Løpetrener KI</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏃</text></svg>">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-512.png">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,500;0,9..40,700;1,9..40,400&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -469,13 +471,18 @@ async function loadFromCloud(uid){
       if(d.profile) { state.profile = d.profile; localStorage.setItem('rc_profile', JSON.stringify(d.profile)); }
       if(d.profileDone) { state.profileDone = d.profileDone; localStorage.setItem('rc_profileDone', JSON.stringify(d.profileDone)); }
       if(d.stravaCreds) { state.stravaCreds = d.stravaCreds; localStorage.setItem('rc_stravaCreds', JSON.stringify(d.stravaCreds)); }
-      if(d.stravaActivities) { state.stravaActivities = d.stravaActivities; localStorage.setItem('rc_stravaActivities', JSON.stringify(d.stravaActivities)); }
-      if(d.chatHistory) { state.chatHistory = d.chatHistory; localStorage.setItem('rc_chatHistory', JSON.stringify(d.chatHistory)); }
+      if(d.stravaActivities?.length) { state.stravaActivities = d.stravaActivities; localStorage.setItem('rc_stravaActivities', JSON.stringify(d.stravaActivities)); }
+      if(d.chatHistory?.length) { state.chatHistory = d.chatHistory; localStorage.setItem('rc_chatHistory', JSON.stringify(d.chatHistory)); }
       if(d.activitySummaries) { state.activitySummaries = d.activitySummaries; localStorage.setItem('rc_activitySummaries', JSON.stringify(d.activitySummaries)); }
-      if(d.shoes) { state.shoes = d.shoes; localStorage.setItem('rc_shoes', JSON.stringify(d.shoes)); }
+      if(d.shoes?.length) { state.shoes = d.shoes; localStorage.setItem('rc_shoes', JSON.stringify(d.shoes)); }
       if(d.shoeMap) { state.shoeMap = d.shoeMap; localStorage.setItem('rc_shoeMap', JSON.stringify(d.shoeMap)); }
       if(d.method) { state.method = d.method; localStorage.setItem('rc_method', JSON.stringify(d.method)); }
       if(d.goal !== undefined) { state.goal = d.goal; localStorage.setItem('rc_goal', JSON.stringify(d.goal)); }
+    } else {
+      // Cloud is empty — migrate existing localStorage data to cloud
+      if(state.apiKey || state.profileDone) {
+        await saveToCloud();
+      }
     }
   } catch(e) { console.error('Cloud load error:', e); }
 }
@@ -744,11 +751,17 @@ function backToChats(){state.chatView='list';render()}
 
 // ─── Render ───
 function render(){
+  // Save focus state before re-render
+  const ae=document.activeElement;
+  const focusId=ae?.id||'';
+  const focusStart=ae?.selectionStart;
+  const focusEnd=ae?.selectionEnd;
+  const focusVal=ae?.value;
+
   const app=document.getElementById('app');
   if(state.authLoading){app.innerHTML='<div class="auth-loading">Laster...</div>';return}
   if(!window.currentUser){app.innerHTML=renderAuth();return}
   if(!state.apiKey){app.innerHTML=renderApiSetup();return}
-  if(!state.profileDone&&!state.editingProfile){app.innerHTML=renderOnboarding();return}
   if(state.editingProfile){app.innerHTML=renderOnboarding(true);return}
 
   const runs=(state.stravaActivities||[]).filter(a=>a.type==='Run'||a.type==='TrailRun');
@@ -763,6 +776,17 @@ function render(){
     <nav class="tab-bar">
       ${['home|run|Hjem','coach|chat|Trener','log|log|Aktivitet','settings|gear|Innstillinger'].map(t=>{const[id,ic,lb]=t.split('|');return`<button class="tab ${state.tab===id?'active':''}" onclick="switchTab('${id}')">${ICO[ic]}<span>${lb}</span></button>`}).join('')}
     </nav>`;
+
+  // Restore focus
+  if(focusId){
+    const el=document.getElementById(focusId);
+    if(el){
+      el.focus();
+      if(typeof focusStart==='number'&&el.setSelectionRange){
+        try{el.setSelectionRange(focusStart,focusEnd)}catch(e){}
+      }
+    }
+  }
 }
 
 function switchTab(t){state.tab=t;if(t==='coach'&&!state.activeChatId)state.chatView='list';state.activeActivity=null;state.showGoalPage=false;render();if(t==='coach'&&state.chatView==='chat')setTimeout(()=>{const el=document.getElementById('chat-bottom');el&&el.scrollIntoView()},50)}
@@ -809,10 +833,6 @@ async function doAuth(){
 function doLogout(){
   if(!confirm('Logge ut?'))return;
   window.fbSignOut(window.fbAuth);
-  state.apiKey='';state.profileDone=false;state.profile={logs:[]};
-  state.chatHistory=[];state.shoes=[];state.shoeMap={};
-  state.stravaActivities=[];state.stravaCreds={clientId:'',clientSecret:'',refreshToken:''};
-  state.stravaStatus='disconnected';state.goal=null;state.method='80/20';
 }
 
 function renderApiSetup(){
@@ -836,13 +856,13 @@ function renderOnboarding(editing=false){
   if(cur.type==='select'){
     input=`<div class="option-list">${cur.options.map(o=>`<button class="option-btn ${val===o?'selected':''}" onclick="obSet('${cur.key}',this.dataset.v)" data-v="${o}">${val===o?ICO.check:''}${o}</button>`).join('')}</div>`;
   }else{
-    input=`<input class="onboarding-input" type="${cur.type}" placeholder="${cur.placeholder}" value="${val}" oninput="obSet('${cur.key}',this.value)" autofocus>`;
+    input=`<input class="onboarding-input" id="ob-input" type="${cur.type}" placeholder="${cur.placeholder}" value="${val}" oninput="obSet('${cur.key}',this.value,true)" autofocus>`;
   }
   const back=step>0?`<button class="btn-secondary" onclick="obBack()">Tilbake</button>`:'';
   const next=step<ONBOARDING_STEPS.length-1?`<button class="btn-primary" ${!val?'disabled':''} onclick="obNext()">Neste</button>`:`<button class="btn-primary" ${!val?'disabled':''} onclick="obFinish(${editing})">${editing?'Lagre':'Ferdig!'}</button>`;
   return`<div class="onboarding"><div class="onboarding-progress">${dots}</div><h2 class="onboarding-label">${cur.label}</h2>${input}<div class="onboarding-nav">${back}${next}</div></div>`;
 }
-function obSet(k,v){state.onboardingForm[k]=v;render()}
+function obSet(k,v,noRender){state.onboardingForm[k]=v;if(!noRender)render()}
 function obNext(){state.onboardingStep++;render()}
 function obBack(){state.onboardingStep--;render()}
 function obFinish(editing){
@@ -908,7 +928,7 @@ function renderDashboard(runs){
   const greeting=hour<12?'God morgen':hour<17?'God ettermiddag':'God kveld';
 
   return`<div class="dashboard">
-    <div class="dash-top-row"><div><span class="dash-greeting-sub">${greeting}</span><span class="dash-greeting">${p.name}</span></div><span class="method-badge">${mLabel}</span></div>
+    <div class="dash-top-row"><div><span class="dash-greeting-sub">${greeting}</span><span class="dash-greeting">${p.name||'løper'}</span></div><span class="method-badge">${mLabel}</span></div>
     ${goalCard}
     <div class="method-toggle">
       <button class="method-btn ${m==='80/20'?'active':''}" onclick="setMethod('80/20')">80/20</button>
@@ -949,13 +969,13 @@ function renderGoalPage(){
       </div>
 
       <label>Tidsmål</label>
-      <input type="text" placeholder="F.eks. 1:45:00" value="${g.time||''}" oninput="setGoalField('time',this.value)">
+      <input type="text" id="goal-time" placeholder="F.eks. 1:45:00" value="${g.time||''}" oninput="setGoalField('time',this.value,true)">
 
       <label>Løpsnavn (valgfritt)</label>
-      <input type="text" placeholder="F.eks. Oslo Halvmaraton" value="${g.raceName||''}" oninput="setGoalField('raceName',this.value)">
+      <input type="text" id="goal-name" placeholder="F.eks. Oslo Halvmaraton" value="${g.raceName||''}" oninput="setGoalField('raceName',this.value,true)">
 
       <label>Dato (valgfritt)</label>
-      <input type="date" value="${g.raceDate||''}" oninput="setGoalField('raceDate',this.value)">
+      <input type="date" id="goal-date" value="${g.raceDate||''}" oninput="setGoalField('raceDate',this.value,true)">
 
       <label>Terrengløp?</label>
       <div class="feeling-row">
@@ -978,9 +998,9 @@ function renderGoalPage(){
   </div>`;
 }
 
-function setGoalField(k,v){
+function setGoalField(k,v,noRender){
   if(!state.goal)state.goal={distance:'',time:'',raceName:'',raceDate:'',isTrail:false,gpxInfo:'',createdAt:new Date().toISOString()};
-  state.goal[k]=v;render();
+  state.goal[k]=v;if(!noRender)render();
 }
 
 function saveGoal(){
@@ -1116,13 +1136,13 @@ function renderLogRuns(){
     const f=state.logForm;
     const shoeSelect=shoes.length?`<label>Sko</label><select onchange="state.logForm.shoeId=this.value"><option value="">— Ingen —</option>${shoes.map(s=>`<option value="${s.id}" ${f.shoeId===s.id?'selected':''}>${s.name}</option>`).join('')}</select>`:'';
     formHtml=`<div class="log-form">
-      <label>Dato</label><input type="date" value="${f.date}" oninput="state.logForm.date=this.value">
-      <label>Type økt</label><select onchange="state.logForm.type=this.value">${['Rolig løp','Intervall','Tempo','Langtur','Fartlek','Bakkeløp','Annet'].map(t=>`<option ${f.type===t?'selected':''}>${t}</option>`).join('')}</select>
-      <label>Distanse (km)</label><input type="number" step="0.1" placeholder="F.eks. 8.5" value="${f.distance}" oninput="state.logForm.distance=this.value">
-      <label>Varighet (min)</label><input type="number" placeholder="F.eks. 45" value="${f.duration}" oninput="state.logForm.duration=this.value">
+      <label>Dato</label><input type="date" id="log-date" value="${f.date}" oninput="state.logForm.date=this.value">
+      <label>Type økt</label><select id="log-type" onchange="state.logForm.type=this.value">${['Rolig løp','Intervall','Tempo','Langtur','Fartlek','Bakkeløp','Annet'].map(t=>`<option ${f.type===t?'selected':''}>${t}</option>`).join('')}</select>
+      <label>Distanse (km)</label><input type="number" id="log-dist" step="0.1" placeholder="F.eks. 8.5" value="${f.distance}" oninput="state.logForm.distance=this.value">
+      <label>Varighet (min)</label><input type="number" id="log-dur" placeholder="F.eks. 45" value="${f.duration}" oninput="state.logForm.duration=this.value">
       <label>Følelse</label><div class="feeling-row">${['Bra','Ok','Tungt'].map(fl=>`<button class="feeling-btn ${f.feeling===fl?'selected':''}" onclick="state.logForm.feeling='${fl}';render()">${fl==='Bra'?'😊':fl==='Tungt'?'😓':'😐'} ${fl}</button>`).join('')}</div>
       ${shoeSelect}
-      <label>Notater (valgfritt)</label><textarea placeholder="Hvordan gikk det?" oninput="state.logForm.notes=this.value">${f.notes}</textarea>
+      <label>Notater (valgfritt)</label><textarea id="log-notes" placeholder="Hvordan gikk det?" oninput="state.logForm.notes=this.value">${f.notes}</textarea>
       <div class="form-actions"><button class="btn-secondary" onclick="state.showLogForm=false;render()">Avbryt</button><button class="btn-primary" onclick="saveLog()">Lagre</button></div>
     </div>`;
   }else{
@@ -1248,7 +1268,7 @@ function renderShoes(){
   if(state.showShoeForm){
     const f=state.shoeForm;
     formHtml=`<div class="log-form shoe-form">
-      <label>Navn på skoen</label><input type="text" placeholder="F.eks. Nike Pegasus 41" value="${f.name||''}" oninput="state.shoeForm.name=this.value">
+      <label>Navn på skoen</label><input type="text" id="shoe-name" placeholder="F.eks. Nike Pegasus 41" value="${f.name||''}" oninput="state.shoeForm.name=this.value">
       <label>Type</label><div class="feeling-row">${['Asfalt','Konkurranse','Terreng','Piggsko'].map(t=>`<button class="feeling-btn ${f.type===t?'selected':''}" onclick="state.shoeForm.type='${t}';render()">${t==='Asfalt'?'🛣️':t==='Konkurranse'?'🏁':t==='Terreng'?'⛰️':'🧊'} ${t}</button>`).join('')}</div>
       <label>Bilde (valgfritt)</label>
       <div class="photo-upload" onclick="document.getElementById('shoePhotoInput').click()">
@@ -1491,7 +1511,7 @@ function renderSettings(){
     <h2 class="settings-title">Innstillinger</h2>
     ${userEmail?`<div style="font-size:13px;color:var(--text2);margin:-16px 0 16px">Logget inn som ${userEmail}</div>`:''}
     <button class="settings-row" onclick="state.editingProfile=true;state.onboardingStep=0;state.onboardingForm={...state.profile};render()">
-      ${ICO.user}<div><div class="settings-row-title">Rediger profil</div><div class="settings-row-sub">${p.name} · ${p.goal}</div></div><span class="settings-arrow">→</span>
+      ${ICO.user}<div><div class="settings-row-title">Rediger profil</div><div class="settings-row-sub">${p.name||'Ikke satt opp'} ${p.goal?'· '+p.goal:''}</div></div><span class="settings-arrow">→</span>
     </button>
     <div class="strava-setup">
       <div class="strava-header"><span class="strava-logo">${ICO.strava}</span><h3>Koble til Strava</h3></div>
@@ -1524,6 +1544,9 @@ function doStravaConnect(){
 
 // Initial render (shows loading while Firebase checks auth)
 render();
+</script>
+<script>
+if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(e=>console.log('SW reg failed:',e))}
 </script>
 </body>
 </html>
