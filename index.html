@@ -131,20 +131,20 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text)}
 .method-btn.active{background:var(--accent);color:#0f1923}
 
 /* Goal card */
-.goal-card{background:var(--surface);border:0.5px solid var(--border);border-left:3px solid var(--accent);border-radius:var(--radius);padding:0;margin-bottom:16px;cursor:pointer;transition:border-color .2s;position:relative;overflow:hidden}
+.goal-card{background:var(--surface);border:0.5px solid var(--border);border-left:3px solid var(--accent);border-radius:var(--radius);padding:0;margin-bottom:16px;cursor:pointer;transition:border-color .2s;position:relative;overflow:hidden;min-height:150px}
 .goal-card:hover{border-color:var(--accent)}
-.goal-card-bg{position:absolute;top:0;right:0;bottom:0;width:60%;display:flex;align-items:center;justify-content:flex-end;pointer-events:none;padding-right:10px}
-.gpx-route-svg{width:100%;height:100%;opacity:0.6}
-.goal-card-content{position:relative;z-index:1;padding:16px}
-.goal-card-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.goal-card-bg{position:absolute;top:0;right:0;bottom:0;width:55%;display:flex;align-items:center;justify-content:center;pointer-events:none;padding-right:10px}
+.gpx-route-svg{width:90%;height:75%;opacity:0.6}
+.goal-card-content{position:relative;z-index:1;padding:20px}
 .goal-card-label{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.05em}
-.goal-card-title{font-size:18px;font-weight:700;margin-top:4px}
-.goal-card-countdown{text-align:right}
-.goal-countdown-num{font-size:22px;font-weight:700;font-family:'Space Mono',monospace;color:var(--accent)}
-.goal-countdown-lbl{font-size:11px;color:var(--text2)}
-.goal-progress-bar{height:6px;border-radius:3px;background:var(--border);overflow:hidden;margin-bottom:6px}
+.goal-card-title{font-size:20px;font-weight:700;margin-top:6px}
+.goal-pipe{color:var(--text2);font-weight:400}
+.goal-card-sub{font-size:13px;color:var(--text2);margin-top:4px}
+.goal-card-elev{font-size:12px;color:var(--text2);margin-top:4px}
+.goal-progress-bar{height:5px;border-radius:3px;background:var(--border);overflow:hidden;margin:12px 0}
 .goal-progress-fill{height:100%;border-radius:3px;background:var(--accent);transition:width .3s}
-.goal-card-sub{font-size:11px;color:var(--text2)}
+.goal-card-weeks{font-size:12px;color:var(--text2)}
+.goal-card-weeks .goal-weeks-num{font-size:24px;font-weight:700;font-family:'Space Mono',monospace;color:var(--accent)}
 .goal-card-empty{display:flex;align-items:center;gap:10px;padding:16px;background:var(--accent-glow);border:1px dashed var(--accent);border-radius:var(--radius);color:var(--accent);cursor:pointer;font-size:14px;font-weight:600;margin-bottom:16px}
 
 /* Dashboard grid 4-col */
@@ -901,16 +901,18 @@ function renderDashboard(runs){
     const weeksLeft=typeof daysLeft==='number'?Math.ceil(daysLeft/7):'—';
     const gpxRoute=state.gpxData?.routeSvg||'';
     const goalTitle=g.raceName||'Treningsmål';
-    const goalDist=g.distance?` · ${g.distance}`:'';
+    const goalDist=g.distance?' <span class="goal-pipe">|</span> '+g.distance:'';
+    const elevation=state.gpxData?.elevation?`<div class="goal-card-elev">${state.gpxData.elevation} m stigning</div>`:'';
+    const progressPct=g.raceDate?Math.min(100,Math.max(5,100-daysLeft/Math.max(1,(new Date(g.raceDate)-new Date(g.createdAt||now))/(86400000))*100)):0;
     goalCard=`<div class="goal-card" onclick="state.showGoalPage=true;render()">
       ${gpxRoute?`<div class="goal-card-bg">${gpxRoute}</div>`:''}
       <div class="goal-card-content">
-        <div class="goal-card-top">
-          <div><div class="goal-card-label">Aktivt mål</div><div class="goal-card-title">${goalTitle}${goalDist}</div></div>
-          <div class="goal-card-countdown"><div class="goal-countdown-num">${weeksLeft}</div><div class="goal-countdown-lbl">uker igjen</div></div>
-        </div>
-        ${g.raceDate?`<div class="goal-progress-bar"><div class="goal-progress-fill" style="width:${g.raceDate?Math.min(100,Math.max(5,100-daysLeft/Math.max(1,(new Date(g.raceDate)-new Date(g.createdAt||now))/(86400000))*100)):0}%"></div></div>`:''}
+        <div class="goal-card-label">Aktivt mål</div>
+        <div class="goal-card-title">${goalTitle}${goalDist}</div>
         <div class="goal-card-sub">${g.time?'Mål: '+g.time:''}${g.time&&g.raceDate?' — ':''}${g.raceDate||''}</div>
+        ${elevation}
+        <div class="goal-progress-bar"><div class="goal-progress-fill" style="width:${progressPct}%"></div></div>
+        <div class="goal-card-weeks"><span class="goal-weeks-num">${weeksLeft}</span> uker igjen</div>
       </div>
     </div>`;
   }else{
