@@ -169,6 +169,19 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text)}
 .gpx-loaded-title{font-size:14px;font-weight:600;color:var(--accent);margin-bottom:4px}
 .gpx-loaded-stats{font-size:13px;color:var(--text2);margin-bottom:8px}
 
+/* Auth */
+.auth-page{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:48px 24px;text-align:center;min-height:100vh;gap:16px}
+.auth-page h2{font-size:24px;font-weight:700}
+.auth-page p{color:var(--text2);font-size:14px;line-height:1.6;max-width:300px}
+.auth-form{width:100%;max-width:300px;display:flex;flex-direction:column;gap:10px}
+.auth-input{width:100%;padding:14px 16px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:15px;font-family:inherit;outline:none}
+.auth-input:focus{border-color:var(--accent)}
+.auth-error{color:var(--danger);font-size:13px;text-align:center}
+.auth-switch{color:var(--text2);font-size:13px;margin-top:8px}
+.auth-switch button{background:none;border:none;color:var(--accent);font-weight:600;cursor:pointer;font-family:inherit;font-size:13px}
+.auth-loading{color:var(--text2);font-size:14px;padding:60px}
+.logout-btn{margin-top:12px;padding:12px;border-radius:var(--radius-sm);background:transparent;color:var(--danger);font-weight:600;font-size:14px;border:1px solid rgba(239,68,68,.2);cursor:pointer;font-family:inherit;width:100%}
+
 /* Strava Setup */
 .strava-setup{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-top:16px}
 .strava-header{display:flex;align-items:center;gap:10px;margin-bottom:16px}
@@ -374,6 +387,45 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text)}
 .stats-shoe-rank{font-weight:700;color:var(--accent);font-family:'Space Mono',monospace;min-width:20px}
 .stats-shoe-cnt{margin-left:auto;color:var(--text2);font-size:13px;font-family:'Space Mono',monospace}
 </style>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
+import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-auth.js";
+import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDqPXbj-xGCLJtU_vtYU0lGw0ON10Ym75k",
+  authDomain: "tempoki-fedf7.firebaseapp.com",
+  projectId: "tempoki-fedf7",
+  storageBucket: "tempoki-fedf7.firebasestorage.app",
+  messagingSenderId: "226494629478",
+  appId: "1:226494629478:web:c77aa7449d9832a447cfa7"
+};
+const fbApp = initializeApp(firebaseConfig);
+const auth = getAuth(fbApp);
+const db = getFirestore(fbApp);
+
+// Expose to global scope for inline handlers
+window.fbAuth = auth;
+window.fbDb = db;
+window.fbDoc = doc;
+window.fbGetDoc = getDoc;
+window.fbSetDoc = setDoc;
+window.fbSignIn = signInWithEmailAndPassword;
+window.fbSignUp = createUserWithEmailAndPassword;
+window.fbSignOut = signOut;
+
+onAuthStateChanged(auth, async (user) => {
+  if (user) {
+    window.currentUser = user;
+    await loadFromCloud(user.uid);
+    if(state.stravaCreds.refreshToken){state.stravaStatus='connected';setTimeout(stravaRefresh,500)}
+  } else {
+    window.currentUser = null;
+  }
+  state.authLoading = false;
+  render();
+});
+</script>
 </head>
 <body>
 <div class="app" id="app"></div>
@@ -381,9 +433,57 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text)}
 <script>
 // ─── State ───
 const LS = k => JSON.parse(localStorage.getItem('rc_'+k) || 'null');
-const SS = (k,v) => localStorage.setItem('rc_'+k, JSON.stringify(v));
+const SS = (k,v) => { localStorage.setItem('rc_'+k, JSON.stringify(v)); debounceSaveCloud(); };
+
+let _saveTimer = null;
+function debounceSaveCloud(){ clearTimeout(_saveTimer); _saveTimer = setTimeout(saveToCloud, 1500); }
+
+async function saveToCloud(){
+  const user = window.currentUser;
+  if(!user) return;
+  try {
+    const data = {
+      apiKey: state.apiKey,
+      profile: state.profile,
+      profileDone: state.profileDone,
+      stravaCreds: state.stravaCreds,
+      stravaActivities: state.stravaActivities,
+      chatHistory: state.chatHistory,
+      activitySummaries: state.activitySummaries,
+      shoes: state.shoes,
+      shoeMap: state.shoeMap,
+      method: state.method,
+      goal: state.goal,
+      updatedAt: new Date().toISOString()
+    };
+    await window.fbSetDoc(window.fbDoc(window.fbDb, 'users', user.uid), data, {merge:true});
+  } catch(e) { console.error('Cloud save error:', e); }
+}
+
+async function loadFromCloud(uid){
+  try {
+    const snap = await window.fbGetDoc(window.fbDoc(window.fbDb, 'users', uid));
+    if(snap.exists()){
+      const d = snap.data();
+      if(d.apiKey) { state.apiKey = d.apiKey; localStorage.setItem('rc_apiKey', JSON.stringify(d.apiKey)); }
+      if(d.profile) { state.profile = d.profile; localStorage.setItem('rc_profile', JSON.stringify(d.profile)); }
+      if(d.profileDone) { state.profileDone = d.profileDone; localStorage.setItem('rc_profileDone', JSON.stringify(d.profileDone)); }
+      if(d.stravaCreds) { state.stravaCreds = d.stravaCreds; localStorage.setItem('rc_stravaCreds', JSON.stringify(d.stravaCreds)); }
+      if(d.stravaActivities) { state.stravaActivities = d.stravaActivities; localStorage.setItem('rc_stravaActivities', JSON.stringify(d.stravaActivities)); }
+      if(d.chatHistory) { state.chatHistory = d.chatHistory; localStorage.setItem('rc_chatHistory', JSON.stringify(d.chatHistory)); }
+      if(d.activitySummaries) { state.activitySummaries = d.activitySummaries; localStorage.setItem('rc_activitySummaries', JSON.stringify(d.activitySummaries)); }
+      if(d.shoes) { state.shoes = d.shoes; localStorage.setItem('rc_shoes', JSON.stringify(d.shoes)); }
+      if(d.shoeMap) { state.shoeMap = d.shoeMap; localStorage.setItem('rc_shoeMap', JSON.stringify(d.shoeMap)); }
+      if(d.method) { state.method = d.method; localStorage.setItem('rc_method', JSON.stringify(d.method)); }
+      if(d.goal !== undefined) { state.goal = d.goal; localStorage.setItem('rc_goal', JSON.stringify(d.goal)); }
+    }
+  } catch(e) { console.error('Cloud load error:', e); }
+}
 
 let state = {
+  authLoading: true,
+  authMode: 'login',
+  authError: '',
   apiKey: LS('apiKey') || '',
   profile: LS('profile') || { logs: [] },
   profileDone: LS('profileDone') || false,
@@ -645,6 +745,8 @@ function backToChats(){state.chatView='list';render()}
 // ─── Render ───
 function render(){
   const app=document.getElementById('app');
+  if(state.authLoading){app.innerHTML='<div class="auth-loading">Laster...</div>';return}
+  if(!window.currentUser){app.innerHTML=renderAuth();return}
   if(!state.apiKey){app.innerHTML=renderApiSetup();return}
   if(!state.profileDone&&!state.editingProfile){app.innerHTML=renderOnboarding();return}
   if(state.editingProfile){app.innerHTML=renderOnboarding(true);return}
@@ -664,6 +766,54 @@ function render(){
 }
 
 function switchTab(t){state.tab=t;if(t==='coach'&&!state.activeChatId)state.chatView='list';state.activeActivity=null;state.showGoalPage=false;render();if(t==='coach'&&state.chatView==='chat')setTimeout(()=>{const el=document.getElementById('chat-bottom');el&&el.scrollIntoView()},50)}
+
+function renderAuth(){
+  const mode=state.authMode;
+  const err=state.authError?`<div class="auth-error">${state.authError}</div>`:'';
+  return`<div class="auth-page">
+    <div style="font-size:36px;margin-bottom:8px">🏃</div>
+    <h2>Løpetrener KI</h2>
+    <p>${mode==='login'?'Logg inn for å fortsette':'Opprett konto for å komme i gang'}</p>
+    <div class="auth-form">
+      <input class="auth-input" type="email" id="authEmail" placeholder="E-postadresse">
+      <input class="auth-input" type="password" id="authPass" placeholder="Passord"${mode==='register'?' minlength="6"':''}>
+      ${err}
+      <button class="btn-primary" style="width:100%;justify-content:center" onclick="doAuth()">${mode==='login'?'Logg inn':'Opprett konto'}</button>
+    </div>
+    <div class="auth-switch">${mode==='login'?'Har du ikke konto?':'Har du allerede konto?'} <button onclick="state.authMode='${mode==='login'?'register':'login'}';state.authError='';render()">${mode==='login'?'Opprett konto':'Logg inn'}</button></div>
+  </div>`;
+}
+
+async function doAuth(){
+  const email=document.getElementById('authEmail').value.trim();
+  const pass=document.getElementById('authPass').value;
+  if(!email||!pass){state.authError='Fyll inn e-post og passord';render();return}
+  state.authError='';
+  try{
+    if(state.authMode==='login'){
+      await window.fbSignIn(window.fbAuth, email, pass);
+    }else{
+      await window.fbSignUp(window.fbAuth, email, pass);
+    }
+  }catch(e){
+    const msg=e.code==='auth/user-not-found'?'Ingen konto med denne e-posten'
+      :e.code==='auth/wrong-password'||e.code==='auth/invalid-credential'?'Feil passord'
+      :e.code==='auth/email-already-in-use'?'E-posten er allerede i bruk'
+      :e.code==='auth/weak-password'?'Passordet må ha minst 6 tegn'
+      :e.code==='auth/invalid-email'?'Ugyldig e-postadresse'
+      :`Feil: ${e.message}`;
+    state.authError=msg;render();
+  }
+}
+
+function doLogout(){
+  if(!confirm('Logge ut?'))return;
+  window.fbSignOut(window.fbAuth);
+  state.apiKey='';state.profileDone=false;state.profile={logs:[]};
+  state.chatHistory=[];state.shoes=[];state.shoeMap={};
+  state.stravaActivities=[];state.stravaCreds={clientId:'',clientSecret:'',refreshToken:''};
+  state.stravaStatus='disconnected';state.goal=null;state.method='80/20';
+}
 
 function renderApiSetup(){
   return`<div class="api-setup">
@@ -1335,8 +1485,11 @@ function renderSettings(){
   const ss=state.stravaStatus;
   const statusHtml=ss==='connected'?`<div class="strava-status connected">${ICO.check} Koblet til Strava</div>`:ss==='connecting'?`<div class="strava-status connecting">Kobler til...</div>`:ss==='error'?`<div class="strava-status error">⚠️ Tilkobling feilet</div>`:'';
 
+  const userEmail=window.currentUser?.email||'';
+  
   return`<div class="settings-page">
     <h2 class="settings-title">Innstillinger</h2>
+    ${userEmail?`<div style="font-size:13px;color:var(--text2);margin:-16px 0 16px">Logget inn som ${userEmail}</div>`:''}
     <button class="settings-row" onclick="state.editingProfile=true;state.onboardingStep=0;state.onboardingForm={...state.profile};render()">
       ${ICO.user}<div><div class="settings-row-title">Rediger profil</div><div class="settings-row-sub">${p.name} · ${p.goal}</div></div><span class="settings-arrow">→</span>
     </button>
@@ -1358,6 +1511,7 @@ function renderSettings(){
         <button class="btn-strava" onclick="doStravaConnect()">🔗 Koble til Strava</button>
       </div>
     </div>
+    <button class="logout-btn" onclick="doLogout()">Logg ut</button>
     <button class="reset-btn" onclick="if(confirm('Er du sikker? Alt slettes.')){localStorage.clear();location.reload()}">Nullstill alt</button>
   </div>`;
 }
@@ -1368,9 +1522,7 @@ function doStravaConnect(){
   if(cid&&cs&&code)stravaConnect({clientId:cid,clientSecret:cs,code});
 }
 
-// Auto-refresh Strava on load
-if(state.stravaCreds.refreshToken){state.stravaStatus='connected';setTimeout(stravaRefresh,500)}
-
+// Initial render (shows loading while Firebase checks auth)
 render();
 </script>
 </body>
