@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#0a0f1a" media="(prefers-color-scheme: dark)">
 <meta name="theme-color" content="#f5f6f8" media="(prefers-color-scheme: light)">
-<title>Løpetrener AI</title>
+<title>Løpetrener KI</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏃</text></svg>">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,500;0,9..40,700;1,9..40,400&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
@@ -117,6 +117,54 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text)}
 .strava-act-stats{display:flex;gap:12px;font-size:12px;color:var(--text2)}
 .strava-cta{display:flex;align-items:center;gap:10px;padding:14px 16px;background:var(--strava-glow);border:1px solid rgba(252,76,2,.25);border-radius:var(--radius-sm);color:var(--strava);cursor:pointer;font-size:13px;font-weight:500}
 .strava-cta svg{width:18px;height:18px;flex-shrink:0}
+
+/* Method toggle */
+.dash-top-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.method-badge{font-size:12px;padding:4px 12px;border-radius:var(--radius-sm);background:var(--accent-glow);color:var(--accent);font-weight:600}
+.method-toggle{display:flex;gap:4px;margin-bottom:16px;background:var(--surface);border-radius:var(--radius-sm);padding:3px;border:1px solid var(--border)}
+.method-btn{flex:1;padding:8px;text-align:center;font-size:13px;font-weight:600;background:transparent;border:none;border-radius:8px;color:var(--text2);cursor:pointer;font-family:inherit;transition:all .2s}
+.method-btn.active{background:var(--accent);color:#0a0f1a}
+@media(prefers-color-scheme:light){.method-btn.active{color:#fff}}
+
+/* Goal card */
+.goal-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:16px;cursor:pointer;transition:border-color .2s}
+.goal-card:hover{border-color:var(--accent)}
+.goal-card-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.goal-card-label{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.05em}
+.goal-card-title{font-size:18px;font-weight:700;margin-top:4px}
+.goal-card-countdown{text-align:right}
+.goal-countdown-num{font-size:22px;font-weight:700;font-family:'Space Mono',monospace;color:var(--accent)}
+.goal-countdown-lbl{font-size:11px;color:var(--text2)}
+.goal-progress-bar{height:6px;border-radius:3px;background:var(--border);overflow:hidden;margin-bottom:6px}
+.goal-progress-fill{height:100%;border-radius:3px;background:var(--accent);transition:width .3s}
+.goal-card-sub{font-size:11px;color:var(--text2)}
+.goal-card-empty{display:flex;align-items:center;gap:10px;padding:16px;background:var(--accent-glow);border:1px dashed var(--accent);border-radius:var(--radius);color:var(--accent);cursor:pointer;font-size:14px;font-weight:600;margin-bottom:16px}
+
+/* Dashboard grid 4-col */
+.dash-grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:16px}
+.dash-grid-4 .mini{padding:12px 6px}
+
+/* Week stats */
+.dash-section-label{font-size:14px;font-weight:700;color:var(--text2);margin-bottom:8px}
+.week-stats{display:flex;gap:8px;margin-bottom:16px}
+.week-stat{flex:1;background:var(--surface);border-radius:var(--radius-sm);padding:12px;text-align:center}
+.week-stat-val{font-size:20px;font-weight:700;font-family:'Space Mono',monospace;color:var(--text)}
+.week-stat-lbl{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-top:2px}
+
+/* Recent list */
+.recent-list{display:flex;flex-direction:column;gap:6px;margin-bottom:16px}
+.recent-item{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm)}
+.recent-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.recent-name{font-size:14px;font-weight:600;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.recent-km{font-size:12px;color:var(--text2)}
+.recent-ago{font-size:11px;color:var(--text2);font-family:'Space Mono',monospace}
+
+/* Goal page */
+.goal-page{padding:20px 16px}
+.goal-page-title{font-size:22px;font-weight:700;margin:16px 0 20px}
+.gpx-loaded{padding:12px}
+.gpx-loaded-title{font-size:14px;font-weight:600;color:var(--accent);margin-bottom:4px}
+.gpx-loaded-stats{font-size:13px;color:var(--text2);margin-bottom:8px}
 
 /* Strava Setup */
 .strava-setup{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-top:16px}
@@ -287,7 +335,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text)}
 .strava-link{display:inline-flex;align-items:center;gap:6px;color:var(--strava);font-size:14px;font-weight:600;text-decoration:none;padding:10px 16px;background:var(--strava-glow);border-radius:var(--radius-sm);margin-bottom:16px}
 .strava-link svg{width:16px;height:16px}
 
-/* AI Summary */
+/* KI Summary */
 .ai-summary-btn{width:100%;display:flex;align-items:center;justify-content:center;gap:6px;padding:12px;font-size:14px}
 .ai-summary{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-top:4px}
 .ai-summary-header{font-weight:700;font-size:14px;margin-bottom:8px}
@@ -359,21 +407,53 @@ let state = {
   shoeForm: { name:'', type:'Asfalt', photo:'', manualKm:0, manualRuns:0 },
   editingShoeId: null,
   logSubTab: 'runs',
+  method: LS('method') || '80/20',
+  goal: LS('goal') || null,
+  showGoalPage: false,
+  gpxData: null,
 };
 
 // ─── Constants ───
 const API_MODEL = 'claude-sonnet-4-20250514';
-const SYSTEM_PROMPT = `Du er en erfaren og motiverende løpetrener-AI. Du snakker norsk.
-Du gir personlige treningsråd, løpeøkter og programmer basert på brukerens profil.
 
-## Treningsfilosofi: 80/20-metoden
+const METHOD_PROMPTS = {
+'80/20': `## Treningsfilosofi: 80/20-metoden
 Din kjernefilosofi er 80/20-metoden (også kjent som polarisert trening):
 - Ca. 80 % av treningsvolumet skal være i lav intensitet (sone 1–2, rolig prat-tempo, puls under 75–80 % av makspuls)
 - Ca. 20 % av treningsvolumet skal være i høy intensitet (sone 4–5, intervaller, tempo, bakkeløp)
 - Svært lite trening i "gråsonen" / middels intensitet (sone 3) — dette gir mest slitasje med minst utbytte
 - Forklar gjerne HVORFOR en økt er rolig eller hard, slik at brukeren forstår metoden
 - Når du lager ukeplaner, sørg for at fordelingen følger 80/20-prinsippet
-- Oppmuntre brukeren til å holde de rolige øktene VIRKELIG rolige — dette er nøkkelen
+- Oppmuntre brukeren til å holde de rolige øktene VIRKELIG rolige — dette er nøkkelen`,
+
+'norwegian': `## Treningsfilosofi: Norwegian singles (terskelmetoden)
+Din kjernefilosofi er Norwegian singles, også kjent som den norske terskelmetoden (brukt av bl.a. Ingebrigtsen-brødrene og Marius Bakken):
+- Kjerneøkten er terskelintervaller: 5–6 × 5–6 minutter i terskelsone (sone 3–4, rundt laktatterskelen) med kort pause (60–90 sek rolig jogg mellom)
+- "Singles" = enkeltdrag, ikke serier. Kvalitet over kvantitet.
+- De rolige dagene skal fortsatt være ROLIGE (sone 1–2) — metoden er ikke "løp hardt hver dag"
+- Typisk uke: 1–2 terskeløkter, 1 langtur, resten rolig løp
+- Tempoet på terskelintervallene skal være "kontrollert hardt" — du skal kunne holde det i 50–60 minutter om du måtte
+- Progrider ved å øke antall intervaller eller lengden på dem, ikke tempoet
+- Denne metoden bygger laktatterskelen effektivt og er mindre belastende enn klassiske VO2max-intervaller
+- Forklar HVORFOR terskeltrening er effektivt og hvordan det skiller seg fra 80/20`
+};
+
+function getSystemPrompt(){
+  const methodPrompt = METHOD_PROMPTS[state.method] || METHOD_PROMPTS['80/20'];
+  const goalCtx = state.goal ? `\n\n## Aktivt treningsmål
+Brukeren har et aktivt mål:
+- Distanse: ${state.goal.distance}
+- Tidsmål: ${state.goal.time}
+- Løp: ${state.goal.raceName || 'Generelt'}
+- Dato: ${state.goal.raceDate || 'Ikke satt'}
+${state.goal.gpxInfo ? `- Terrenginfo fra GPX: ${state.goal.gpxInfo}` : ''}
+${state.goal.isTrail ? '- Dette er et TERRENGLØP — tilpass styrketrening med fokus på stigning, nedoverbakke, ankelstabilitet og ujevnt underlag' : ''}
+Tilpass ALLE treningsforslag mot dette målet. Beregn hvor mange uker det er igjen og periodiser treningen deretter. Vurder brukerens nåværende form opp mot målet og gi ærlig feedback om målet er realistisk.` : '';
+
+  return `Du er en erfaren og motiverende løpetrener-KI. Du snakker norsk.
+Du gir personlige treningsråd, løpeøkter og programmer basert på brukerens profil.
+
+${methodPrompt}
 
 ## Bruk av treningsdata
 Du har tilgang til brukerens faktiske treningshistorikk fra Strava (og/eller manuelt logget).
@@ -381,7 +461,7 @@ Analyser dataene for å:
 - Vurdere nåværende treningsbelastning og om brukeren bør øke/redusere
 - Se mønstre i intensitet, distanse og frekvens
 - Tilpasse forslag basert på hva som faktisk er gjort siste ukene
-- Gi konkrete tilbakemeldinger på tempofordeling (for mye i gråsonen? for lite rolig?)
+- Gi konkrete tilbakemeldinger på tempofordeling
 - Beregne ukentlig kilometervolum og trend
 
 Når du foreslår en økt, bruk dette formatet:
@@ -405,10 +485,12 @@ Regler:
 - Legg styrkeøktene på dager som IKKE er harde løpeøkter (helst etter rolige løp eller på hviledager)
 - Formater styrkeøkter tydelig med: øvelse, sett x reps, pausetid, og korte forklaringer på utførelse
 - Progrider over tid: øk volum, vekt eller vanskelighetsgrad gradvis
+${goalCtx}
 
 Vær motiverende men realistisk. Ta hensyn til skadeforebygging.
 Bruk emojier sparsomt men effektivt for å gjøre det visuelt.
 Hold svarene konsise og handlingsorienterte.`;
+}
 
 const ONBOARDING_STEPS = [
   { key:'name', label:'Hva heter du?', type:'text', placeholder:'Navnet ditt' },
@@ -511,9 +593,9 @@ async function stravaRefresh(){
   }catch(e){console.error(e)}
 }
 
-// ─── AI Coach ───
+// ─── KI Coach ───
 async function askCoach(msgs){
-  const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':state.apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:API_MODEL,max_tokens:1500,system:SYSTEM_PROMPT+buildCtx(),messages:msgs})});
+  const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':state.apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:API_MODEL,max_tokens:1500,system:getSystemPrompt()+buildCtx(),messages:msgs})});
   const d=await r.json();if(d.error)throw new Error(d.error.message);
   return d.content.map(b=>b.text||'').join('\n');
 }
@@ -578,12 +660,12 @@ function render(){
     </nav>`;
 }
 
-function switchTab(t){state.tab=t;if(t==='coach'&&!state.activeChatId)state.chatView='list';state.activeActivity=null;render();if(t==='coach'&&state.chatView==='chat')setTimeout(()=>{const el=document.getElementById('chat-bottom');el&&el.scrollIntoView()},50)}
+function switchTab(t){state.tab=t;if(t==='coach'&&!state.activeChatId)state.chatView='list';state.activeActivity=null;state.showGoalPage=false;render();if(t==='coach'&&state.chatView==='chat')setTimeout(()=>{const el=document.getElementById('chat-bottom');el&&el.scrollIntoView()},50)}
 
 function renderApiSetup(){
   return`<div class="api-setup">
     <span style="color:var(--accent)">${ICO.key}</span>
-    <h2>Løpetrener AI</h2>
+    <h2>Løpetrener KI</h2>
     <p>For at appen skal fungere trenger du en Anthropic API-nøkkel fra <strong>console.anthropic.com</strong>.</p>
     <input type="password" placeholder="sk-ant-..." class="api-input" id="apiKeyInput">
     <button class="btn-primary" onclick="saveApiKey()">Koble til</button>
@@ -618,42 +700,191 @@ function obFinish(editing){
   render();
 }
 
-function renderDashboard(runs){
-  const p=state.profile;
-  const now=new Date(),ws=new Date(now);ws.setDate(now.getDate()-((now.getDay()+6)%7));ws.setHours(0,0,0,0);
-  const weekKm=runs.filter(a=>new Date(a.start_date_local)>=ws).reduce((s,a)=>s+a.distance/1000,0);
-  const recent=runs.slice(0,4);
+function setMethod(m){state.method=m;SS('method',m);render()}
 
-  let stravaSection='';
-  if(state.stravaStatus==='connected'){
-    stravaSection=`<div class="dash-section">
-      <div class="section-header"><h3 class="section-title">Strava</h3><button class="refresh-btn" onclick="stravaRefresh()">${ICO.refresh}</button></div>
-      <div class="dash-stats strava-stats">
-        <div class="stat"><div class="stat-value strava-val">${weekKm.toFixed(1)}</div><div class="stat-label">km denne uken</div></div>
-        <div class="stat"><div class="stat-value strava-val">${runs.length}</div><div class="stat-label">løp hentet</div></div>
+function renderDashboard(runs){
+  if(state.showGoalPage) return renderGoalPage();
+  const p=state.profile;
+  const m=state.method;
+  const mLabel=m==='norwegian'?'Norwegian singles':'80/20-metoden';
+  const now=new Date(),ws=new Date(now);ws.setDate(now.getDate()-((now.getDay()+6)%7));ws.setHours(0,0,0,0);
+  const weekRuns=runs.filter(a=>new Date(a.start_date_local)>=ws);
+  const weekKm=weekRuns.reduce((s,a)=>s+a.distance/1000,0);
+  const weekCount=weekRuns.length;
+  const weekPaceAvg=weekRuns.length?weekRuns.reduce((s,a)=>s+(a.distance>0?a.moving_time/60/(a.distance/1000):0),0)/weekRuns.length:0;
+  const wpMin=Math.floor(weekPaceAvg),wpSec=Math.round((weekPaceAvg-wpMin)*60).toString().padStart(2,'0');
+  const recent=runs.slice(0,3);
+
+  // Goal card
+  let goalCard='';
+  if(state.goal){
+    const g=state.goal;
+    const daysLeft=g.raceDate?Math.max(0,Math.ceil((new Date(g.raceDate)-now)/(86400000))):'—';
+    const weeksLeft=typeof daysLeft==='number'?Math.ceil(daysLeft/7):'—';
+    goalCard=`<div class="goal-card" onclick="state.showGoalPage=true;render()">
+      <div class="goal-card-top">
+        <div><div class="goal-card-label">Aktivt mål</div><div class="goal-card-title">${g.distance} ${g.time}</div></div>
+        <div class="goal-card-countdown"><div class="goal-countdown-num">${weeksLeft}</div><div class="goal-countdown-lbl">uker igjen</div></div>
       </div>
-      <div class="strava-recent">${recent.map(a=>{const f=fmtActivity(a);return`<div class="strava-activity"><div class="strava-act-top"><span class="strava-act-name">${f.name}</span><span class="strava-act-date">${f.date}</span></div><div class="strava-act-stats"><span>${f.km} km</span><span>${f.mins} min</span><span>${f.pace} /km</span>${f.hr?`<span>♥ ${f.hr}</span>`:''}</div></div>`}).join('')}</div>
+      ${g.raceDate?`<div class="goal-progress-bar"><div class="goal-progress-fill" style="width:${g.raceDate?Math.min(100,Math.max(5,100-daysLeft/Math.max(1,(new Date(g.raceDate)-new Date(g.createdAt||now))/(86400000))*100)):0}%"></div></div>`:''}
+      <div class="goal-card-sub">${g.raceName||'Generelt mål'}${g.raceDate?' — '+g.raceDate:''}${g.isTrail?' ⛰️':''}</div>
     </div>`;
   }else{
-    stravaSection=`<div class="dash-section"><div class="strava-cta" onclick="switchTab('settings')">${ICO.strava}<span>Koble til Strava for smartere treningsråd →</span></div></div>`;
+    goalCard=`<div class="goal-card-empty" onclick="state.showGoalPage=true;render()">
+      <span>🎯</span><span>Sett et treningsmål →</span>
+    </div>`;
   }
 
+  // Method-aware prompts
+  const methodRef=m==='norwegian'?'Norwegian singles-metoden':'80/20-metoden';
+  const analyseLabel=m==='norwegian'?'Analyse':'80/20-analyse';
+  const analysePrompt=m==='norwegian'?'Analyser Strava-dataene mine. Trener jeg nok terskelintervaller i tråd med Norwegian singles-metoden? Gi en ærlig vurdering.'
+    :'Analyser Strava-dataene mine. Følger jeg 80/20-fordelingen? Gi meg en ærlig vurdering og forbedringsforslag.';
+
+  const stravaHint=state.stravaStatus!=='connected'?`<div class="dash-section"><div class="strava-cta" onclick="switchTab('settings')">${ICO.strava}<span>Koble til Strava for smartere treningsråd →</span></div></div>`:'';
+
+  // Recent runs with intensity dot
+  const recentHtml=recent.length?`<div class="dash-section-label">Siste økter</div><div class="recent-list">${recent.map(a=>{
+    const f=fmtActivity(a);
+    const isHard=f.hr&&parseInt(f.hr)>155;
+    const dotColor=isHard?'var(--strava)':'var(--accent)';
+    const ago=timeAgo(new Date(a.start_date_local));
+    return`<div class="recent-item"><div class="recent-dot" style="background:${dotColor}"></div><span class="recent-name">${f.name}</span><span class="recent-km">${f.km} km</span><span class="recent-ago">${ago}</span></div>`;
+  }).join('')}</div>`:'';
+
   return`<div class="dashboard">
-    <div class="dash-header"><span class="dash-greeting">Hei, ${p.name}!</span><span class="dash-goal">${GOAL_EMOJI[p.goal]||'🏃'} ${p.goal}</span></div>
-    <div class="dash-card accent-card" onclick="quickAsk('Gi meg en treningsøkt som passer for i dag. Analyser Strava-dataene mine og profilen min for å finne ut hva som er best å gjøre nå, basert på 80/20-metoden.')">
-      <div class="accent-card-icon">🏃‍♂️</div><div><div class="accent-card-title">Dagens økt</div><div class="accent-card-sub">AI-anbefaling basert på din historikk</div></div><div class="accent-card-arrow">→</div>
+    <div class="dash-top-row"><span class="dash-greeting">Hei, ${p.name}!</span><span class="method-badge">${mLabel}</span></div>
+    ${goalCard}
+    <div class="method-toggle">
+      <button class="method-btn ${m==='80/20'?'active':''}" onclick="setMethod('80/20')">80/20</button>
+      <button class="method-btn ${m==='norwegian'?'active':''}" onclick="setMethod('norwegian')">Norwegian singles</button>
     </div>
-    <div class="dash-grid">
-      <div class="dash-card mini" onclick="quickAsk('Lag en ukeplan for meg denne uken basert på 80/20-metoden, inkludert 2 styrkeøkter. Se på Strava-historikken min for å tilpasse belastningen riktig.')"><div class="mini-emoji">📋</div><div class="mini-label">Ukeplan</div></div>
-      <div class="dash-card mini" onclick="quickAsk('Gi meg en styrkeøkt for løpere med fokus på underkropp og core (30–60 min inkl. hvile). Varier mellom hjemmeøkt og studioøkt — velg det som passer best nå. Inkluder sett, reps, pausetid og korte forklaringer.')"><div class="mini-emoji">💪</div><div class="mini-label">Styrkeøkt</div></div>
-      <div class="dash-card mini" onclick="quickAsk('Analyser Strava-dataene mine. Følger jeg 80/20-fordelingen? Gi meg en ærlig vurdering og forbedringsforslag.')"><div class="mini-emoji">📊</div><div class="mini-label">80/20-analyse</div></div>
-      <div class="dash-card mini" onclick="quickAsk('Gi meg tips for skadeforebygging basert på treningshistorikken min. Ser du noen risikofaktorer?')"><div class="mini-emoji">🛡️</div><div class="mini-label">Skadeforebygging</div></div>
-      <div class="dash-card mini" onclick="quickAsk('Gi meg ernæringsråd tilpasset mitt treningsprogram og mål.')"><div class="mini-emoji">🥗</div><div class="mini-label">Ernæring</div></div>
-      <div class="dash-card mini" onclick="quickAsk('Gi meg en god oppvarmingsrutine og uttøyning tilpasset løping.')"><div class="mini-emoji">🧘</div><div class="mini-label">Oppvarming</div></div>
+    <div class="dash-card accent-card" onclick="quickAsk('Gi meg en treningsøkt som passer for i dag. Analyser Strava-dataene mine og profilen min, basert på ${methodRef}. Ta hensyn til det aktive treningsmålet mitt.')">
+      <div class="accent-card-icon">🏃‍♂️</div><div><div class="accent-card-title">Dagens økt</div><div class="accent-card-sub">KI-anbefaling tilpasset målet ditt</div></div><div class="accent-card-arrow">→</div>
     </div>
-    ${stravaSection}
-    <div class="dash-stats"><div class="stat"><div class="stat-value">${p.weeklyKm||0}</div><div class="stat-label">km/uke mål</div></div><div class="stat"><div class="stat-value">${(p.logs||[]).length}</div><div class="stat-label">manuelt logget</div></div><div class="stat"><div class="stat-value">${p.experience?.split(' ')[0]||'—'}</div><div class="stat-label">erfaring</div></div></div>
+    <div class="dash-grid-4">
+      <div class="dash-card mini" onclick="quickAsk('Lag en ukeplan for meg denne uken basert på ${methodRef}, inkludert 2 styrkeøkter. Se på Strava-historikken min og det aktive målet mitt for å tilpasse belastningen.')"><div class="mini-emoji">📋</div><div class="mini-label">Ukeplan</div></div>
+      <div class="dash-card mini" onclick="quickAsk('Gi meg en styrkeøkt for løpere med fokus på underkropp og core (30–60 min inkl. hvile). Varier mellom hjemmeøkt og studioøkt. Tilpass til mitt aktive mål.')"><div class="mini-emoji">💪</div><div class="mini-label">Styrke</div></div>
+      <div class="dash-card mini" onclick="quickAsk('${analysePrompt}')"><div class="mini-emoji">📊</div><div class="mini-label">${analyseLabel}</div></div>
+      <div class="dash-card mini" onclick="quickAsk('Gi meg tips for skadeforebygging basert på treningshistorikken min. Ser du noen risikofaktorer?')"><div class="mini-emoji">🛡️</div><div class="mini-label">Skader</div></div>
+    </div>
+    ${state.stravaStatus==='connected'?`<div class="dash-section-label">Denne uken</div>
+    <div class="week-stats">
+      <div class="week-stat"><div class="week-stat-val">${weekKm.toFixed(1)}</div><div class="week-stat-lbl">km</div></div>
+      <div class="week-stat"><div class="week-stat-val">${weekCount}</div><div class="week-stat-lbl">økter</div></div>
+      <div class="week-stat"><div class="week-stat-val">${weekPaceAvg>0?wpMin+':'+wpSec:'—'}</div><div class="week-stat-lbl">snitt /km</div></div>
+    </div>`:''}
+    ${recentHtml}
+    ${stravaHint}
   </div>`;
+}
+
+// ─── Goal Page ───
+function renderGoalPage(){
+  const g=state.goal||{};
+  const gpx=state.gpxData;
+  return`<div class="goal-page">
+    <button class="chat-back-btn" onclick="state.showGoalPage=false;render()">← Tilbake</button>
+    <h2 class="goal-page-title">Treningsmål</h2>
+
+    <div class="log-form">
+      <label>Distanse</label>
+      <div class="feeling-row">
+        ${['5 km','10 km','Halvmaraton'].map(d=>`<button class="feeling-btn ${(g.distance||'')=== d?'selected':''}" onclick="setGoalField('distance','${d}')">${d}</button>`).join('')}
+      </div>
+
+      <label>Tidsmål</label>
+      <input type="text" placeholder="F.eks. 1:45:00" value="${g.time||''}" oninput="setGoalField('time',this.value)">
+
+      <label>Løpsnavn (valgfritt)</label>
+      <input type="text" placeholder="F.eks. Oslo Halvmaraton" value="${g.raceName||''}" oninput="setGoalField('raceName',this.value)">
+
+      <label>Dato (valgfritt)</label>
+      <input type="date" value="${g.raceDate||''}" oninput="setGoalField('raceDate',this.value)">
+
+      <label>Terrengløp?</label>
+      <div class="feeling-row">
+        <button class="feeling-btn ${g.isTrail?'selected':''}" onclick="setGoalField('isTrail',true)">⛰️ Ja</button>
+        <button class="feeling-btn ${g.isTrail===false?'selected':''}" onclick="setGoalField('isTrail',false)">🛣️ Nei</button>
+      </div>
+
+      <label>GPX-fil (valgfritt)</label>
+      <div class="photo-upload" onclick="document.getElementById('gpxInput').click()">
+        ${gpx?`<div class="gpx-loaded"><div class="gpx-loaded-title">✅ ${gpx.name}</div><div class="gpx-loaded-stats">${gpx.distance} km · ${gpx.elevation}m stigning</div><div class="gpx-profile">${gpx.profileSvg}</div></div>`
+        :`<div class="photo-placeholder">${ICO.log}<span>Last opp GPX-fil for ruteanalyse</span></div>`}
+      </div>
+      <input type="file" id="gpxInput" accept=".gpx" style="display:none" onchange="handleGpxUpload(this)">
+
+      <div class="form-actions" style="margin-top:20px">
+        ${state.goal?`<button class="btn-secondary" onclick="if(confirm('Fjerne målet?')){state.goal=null;SS('goal',null);state.gpxData=null;state.showGoalPage=false;render()}">Fjern mål</button>`:''}
+        <button class="btn-primary" onclick="saveGoal()">Lagre mål</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function setGoalField(k,v){
+  if(!state.goal)state.goal={distance:'',time:'',raceName:'',raceDate:'',isTrail:false,gpxInfo:'',createdAt:new Date().toISOString()};
+  state.goal[k]=v;render();
+}
+
+function saveGoal(){
+  if(!state.goal)return;
+  if(!state.goal.createdAt)state.goal.createdAt=new Date().toISOString();
+  if(state.gpxData)state.goal.gpxInfo=`${state.gpxData.distance} km, ${state.gpxData.elevation}m stigning, maks høyde ${state.gpxData.maxElev}m, min høyde ${state.gpxData.minElev}m`;
+  SS('goal',state.goal);
+  state.showGoalPage=false;render();
+}
+
+function handleGpxUpload(input){
+  const file=input.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      const parser=new DOMParser();
+      const xml=parser.parseFromString(e.target.result,'text/xml');
+      const trkpts=[...xml.querySelectorAll('trkpt')];
+      if(!trkpts.length){alert('Ingen punkter funnet i GPX-filen.');return}
+      let totalDist=0;const elevs=[];
+      trkpts.forEach((pt,i)=>{
+        const lat=parseFloat(pt.getAttribute('lat')),lon=parseFloat(pt.getAttribute('lon'));
+        const eleEl=pt.querySelector('ele');
+        const ele=eleEl?parseFloat(eleEl.textContent):0;
+        elevs.push(ele);
+        if(i>0){
+          const prev=trkpts[i-1];
+          const pLat=parseFloat(prev.getAttribute('lat')),pLon=parseFloat(prev.getAttribute('lon'));
+          totalDist+=haversine(pLat,pLon,lat,lon);
+        }
+      });
+      const maxElev=Math.round(Math.max(...elevs)),minElev=Math.round(Math.min(...elevs));
+      let totalClimb=0;
+      for(let i=1;i<elevs.length;i++){const d=elevs[i]-elevs[i-1];if(d>0)totalClimb+=d}
+      // Build simple elevation profile SVG
+      const w=300,h=80;
+      const step=Math.max(1,Math.floor(elevs.length/w));
+      const sampled=[];for(let i=0;i<elevs.length;i+=step)sampled.push(elevs[i]);
+      const eMin=Math.min(...sampled),eMax=Math.max(...sampled),eRange=eMax-eMin||1;
+      const points=sampled.map((e,i)=>`${(i/(sampled.length-1)*w).toFixed(1)},${(h-(e-eMin)/eRange*h).toFixed(1)}`).join(' ');
+      const profileSvg=`<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:60px"><polyline points="${points}" fill="none" stroke="var(--accent)" stroke-width="1.5"/><polygon points="0,${h} ${points} ${w},${h}" fill="var(--accent)" opacity="0.15"/></svg>`;
+
+      state.gpxData={name:file.name,distance:totalDist.toFixed(1),elevation:Math.round(totalClimb),maxElev,minElev,profileSvg};
+      if(!state.goal)state.goal={distance:'',time:'',raceName:'',raceDate:'',isTrail:false,gpxInfo:'',createdAt:new Date().toISOString()};
+      if(!state.goal.distance&&totalDist>0){
+        if(totalDist<7)state.goal.distance='5 km';
+        else if(totalDist<15)state.goal.distance='10 km';
+        else state.goal.distance='Halvmaraton';
+      }
+      render();
+    }catch(err){alert('Kunne ikke lese GPX-filen: '+err.message)}
+  };
+  reader.readAsText(file);
+}
+
+function haversine(lat1,lon1,lat2,lon2){
+  const R=6371,dLat=(lat2-lat1)*Math.PI/180,dLon=(lon2-lon1)*Math.PI/180;
+  const a=Math.sin(dLat/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
 }
 
 function renderChat(runs){
@@ -802,9 +1033,9 @@ function renderActivityDetail(){
 
   const stravaLink=a.stravaId?`<a href="https://www.strava.com/activities/${a.stravaId}" target="_blank" class="strava-link">${ICO.strava} Se på Strava</a>`:'';
 
-  const summaryHtml=summary?`<div class="ai-summary"><div class="ai-summary-header">🤖 AI-oppsummering</div><div class="ai-summary-body">${fmtMsg(summary)}</div></div>`
+  const summaryHtml=summary?`<div class="ai-summary"><div class="ai-summary-header">🤖 KI-oppsummering</div><div class="ai-summary-body">${fmtMsg(summary)}</div></div>`
     :state.summaryLoading?`<div class="ai-summary"><div class="ai-summary-header">🤖 Analyserer...</div><div class="ai-summary-body"><span class="dot-loader"><span></span><span></span><span></span></span></div></div>`
-    :`<button class="btn-secondary ai-summary-btn" onclick="summarizeActivity()">🤖 Oppsummer med AI</button>`;
+    :`<button class="btn-secondary ai-summary-btn" onclick="summarizeActivity()">🤖 Oppsummer med KI</button>`;
 
   return`<div class="activity-detail">
     <button class="chat-back-btn" onclick="state.activeActivity=null;render()">← Tilbake</button>
