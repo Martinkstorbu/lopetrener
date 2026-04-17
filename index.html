@@ -402,14 +402,23 @@ function renderDash(){
       const we2=new Date(ws2);we2.setDate(we2.getDate()+7);
       const wRuns=allRuns.filter(a=>{const d=new Date(a.start_date_local);return d>=ws2&&d<we2});
       const km=wRuns.reduce((s,a)=>s+a.distance/1000,0);
+      const paceRuns=wRuns.filter(a=>a.distance>0);
+      const avgPace=paceRuns.length?paceRuns.reduce((s,a)=>s+a.moving_time/60/(a.distance/1000),0)/paceRuns.length:0;
+      const elev=wRuns.reduce((s,a)=>s+(a.total_elevation_gain||0),0);
       const wNum=Math.ceil((ws2-new Date(ws2.getFullYear(),0,1))/604800000)+1;
-      w4.push({km,label:i===0?'Nå':'U'+wNum});
+      w4.push({km,pace:avgPace,elev,label:i===0?'Nå':''+wNum});
     }
-    const w4Max=Math.max(...w4.map(w=>w.km),1);
-    const w4Pts=w4.map((w,i)=>{const x=20+i*(240/3);const y=65-(w.km/w4Max*50);return`${x.toFixed(0)},${y.toFixed(0)}`});
-    const w4Labels=w4.map((w,i)=>{const x=20+i*(240/3);return`<text x="${x}" y="82" text-anchor="middle" fill="var(--text2)" font-size="10" font-family="'DM Sans',sans-serif">${w.label}</text>`}).join('');
-    const w4Vals=w4.map((w,i)=>{const x=20+i*(240/3);const y=65-(w.km/w4Max*50)-8;return w.km>0?`<text x="${x}" y="${y.toFixed(0)}" text-anchor="middle" fill="${i===3?'var(--accent)':'var(--text2)'}" font-size="10" font-weight="${i===3?'700':'400'}" font-family="'Space Mono',monospace">${w.km.toFixed(1)}</text>`:''}).join('');
-    const w4Dots=w4.map((w,i)=>{const x=20+i*(240/3);const y=65-(w.km/w4Max*50);return`<circle cx="${x}" cy="${y.toFixed(0)}" r="${i===3?'5':'3.5'}" fill="var(--accent)" opacity="${i===3?'1':'0.5'}"/>`}).join('');
+    function miniLine(data,color,valFn,curVal){
+      const max=Math.max(...data,0.001);const min=Math.min(...data);const range=max-min||1;
+      const pts=data.map((v,i)=>{const x=20+i*80;const y=8+(1-(v-min)/range)*30;return`${x},${y.toFixed(0)}`}).join(' ');
+      const dots=data.map((v,i)=>{const x=20+i*80;const y=8+(1-(v-min)/range)*30;return`<circle cx="${x}" cy="${y.toFixed(0)}" r="${i===3?'4.5':'3'}" fill="${color}" opacity="${i===3?'1':'0.4'}"/>`}).join('');
+      const labels=w4.map((w,i)=>`<text x="${20+i*80}" y="48" text-anchor="middle" fill="var(--text2)" font-size="9">${w.label}</text>`).join('');
+      return`<div class="chart-card" style="margin-bottom:8px;padding:12px 14px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><span style="font-size:13px;font-weight:700;color:var(--text2)">${valFn.label}</span><span style="font-size:16px;font-weight:700;color:${color};font-family:'Space Mono',monospace">${curVal}</span></div><svg viewBox="0 0 280 52" style="width:100%;height:52px"><polyline points="${pts}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>${dots}${labels}</svg></div>`;
+    }
+    const kmData=w4.map(w=>w.km);
+    const paceData=w4.map(w=>w.pace);
+    const elevData=w4.map(w=>w.elev);
+    const curPm=Math.floor(w4[3].pace),curPs=Math.round((w4[3].pace-curPm)*60).toString().padStart(2,'0');
 
     weekSec=`<p class="sec-label">Denne uken</p>
     <div class="week-row">
@@ -418,7 +427,9 @@ function renderDash(){
       <div class="week-box"><div class="week-val">${wPace>0?wpm+':'+wps:'—'}</div><div class="week-lbl">snitt /km</div></div>
       <div class="week-box"><div class="week-val">${Math.round(wElev)}</div><div class="week-lbl">stigning</div></div>
     </div>
-    <div class="chart-card" style="margin-bottom:16px"><div class="chart-title">Km siste 4 uker</div><svg viewBox="0 0 280 90" style="width:100%;height:90px"><polyline points="${w4Pts.join(' ')}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>${w4Dots}${w4Vals}${w4Labels}</svg></div>`;
+    ${miniLine(kmData,'var(--accent)',{label:'Km per uke'},w4[3].km.toFixed(1))}
+    ${miniLine(paceData,'#ff7043',{label:'Snittempo'},w4[3].pace>0?curPm+':'+curPs:'—')}
+    ${miniLine(elevData,'#7F77DD',{label:'Stigning'},Math.round(w4[3].elev)+'m')}`;
   }
 
   // Records section
