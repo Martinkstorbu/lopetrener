@@ -364,7 +364,6 @@ function renderDash(){
   const wKm=weekRuns.reduce((s,a)=>s+a.distance/1000,0);
   const wCnt=weekRuns.length;
   const wPace=wCnt?weekRuns.reduce((s,a)=>s+(a.distance>0?a.moving_time/60/(a.distance/1000):0),0)/wCnt:0;
-  const wpm=Math.floor(wPace),wps=Math.round((wPace-wpm)*60).toString().padStart(2,'0');
   const wElev=weekRuns.reduce((s,a)=>s+(a.total_elevation_gain||0),0);
 
   // Year totals
@@ -408,28 +407,31 @@ function renderDash(){
       const wNum=Math.ceil((ws2-new Date(ws2.getFullYear(),0,1))/604800000)+1;
       w4.push({km,pace:avgPace,elev,label:i===0?'Nå':''+wNum});
     }
-    function miniLine(data,color,valFn,curVal){
+    function nFmt(v,dec=1){return dec>0?v.toFixed(dec).replace('.',','):Math.round(v).toString()}
+    function eFmt(v){if(v>=1000)return(v/1000).toFixed(1).replace('.',',')+' K';return Math.round(v).toString()}
+    function pFmt(p){if(!p||p<=0)return'—';const m=Math.floor(p),s=Math.round((p-m)*60).toString().padStart(2,'0');return m+':'+s}
+
+    function miniLine(data,color,label,fmtFn,curVal){
       const max=Math.max(...data,0.001);const min=Math.min(...data);const range=max-min||1;
-      const pts=data.map((v,i)=>{const x=20+i*80;const y=8+(1-(v-min)/range)*30;return`${x},${y.toFixed(0)}`}).join(' ');
-      const dots=data.map((v,i)=>{const x=20+i*80;const y=8+(1-(v-min)/range)*30;return`<circle cx="${x}" cy="${y.toFixed(0)}" r="${i===3?'4.5':'3'}" fill="${color}" opacity="${i===3?'1':'0.4'}"/>`}).join('');
-      const labels=w4.map((w,i)=>`<text x="${20+i*80}" y="48" text-anchor="middle" fill="var(--text2)" font-size="9">${w.label}</text>`).join('');
-      return`<div class="chart-card" style="margin-bottom:8px;padding:12px 14px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><span style="font-size:13px;font-weight:700;color:var(--text2)">${valFn.label}</span><span style="font-size:16px;font-weight:700;color:${color};font-family:'Space Mono',monospace">${curVal}</span></div><svg viewBox="0 0 280 52" style="width:100%;height:52px"><polyline points="${pts}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>${dots}${labels}</svg></div>`;
+      const pts=data.map((v,i)=>{const x=20+i*80;const y=6+(1-(v-min)/range)*28;return`${x},${y.toFixed(0)}`}).join(' ');
+      const dots=data.map((v,i)=>{const x=20+i*80;const y=6+(1-(v-min)/range)*28;return`<circle cx="${x}" cy="${y.toFixed(0)}" r="${i===3?'4.5':'3'}" fill="${color}" opacity="${i===3?'1':'0.4'}"/>`}).join('');
+      const tbl=w4.map((w,i)=>`<div style="flex:1;text-align:center"><div style="font-size:9px;color:${i===3?'var(--text)':'var(--text2)'};${i===3?'font-weight:700':''}">${w.label}</div><div style="font-size:12px;font-family:'Space Mono',monospace;color:${i===3?color:'var(--text2)'};${i===3?'font-weight:700':''}">${fmtFn(data[i])}</div></div>`).join('');
+      return`<div class="chart-card" style="margin-bottom:8px;padding:12px 14px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><span style="font-size:13px;font-weight:700;color:var(--text2)">${label}</span></div><svg viewBox="0 0 280 40" style="width:100%;height:40px"><polyline points="${pts}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>${dots}</svg><div style="display:flex;margin-top:6px;border-top:0.5px solid var(--border);padding-top:8px">${tbl}</div></div>`;
     }
     const kmData=w4.map(w=>w.km);
     const paceData=w4.map(w=>w.pace);
     const elevData=w4.map(w=>w.elev);
-    const curPm=Math.floor(w4[3].pace),curPs=Math.round((w4[3].pace-curPm)*60).toString().padStart(2,'0');
 
     weekSec=`<p class="sec-label">Denne uken</p>
     <div class="week-row">
-      <div class="week-box"><div class="week-val">${wKm.toFixed(1)}</div><div class="week-lbl">km</div></div>
+      <div class="week-box"><div class="week-val">${nFmt(wKm)}</div><div class="week-lbl">km</div></div>
       <div class="week-box"><div class="week-val">${wCnt}</div><div class="week-lbl">økter</div></div>
-      <div class="week-box"><div class="week-val">${wPace>0?wpm+':'+wps:'—'}</div><div class="week-lbl">snitt /km</div></div>
-      <div class="week-box"><div class="week-val">${Math.round(wElev)}</div><div class="week-lbl">stigning</div></div>
+      <div class="week-box"><div class="week-val">${wPace>0?pFmt(wPace):'—'}</div><div class="week-lbl">snitt /km</div></div>
+      <div class="week-box"><div class="week-val">${eFmt(wElev)}</div><div class="week-lbl">stigning</div></div>
     </div>
-    ${miniLine(kmData,'var(--accent)',{label:'Km per uke'},w4[3].km.toFixed(1))}
-    ${miniLine(paceData,'#ff7043',{label:'Snittempo'},w4[3].pace>0?curPm+':'+curPs:'—')}
-    ${miniLine(elevData,'#7F77DD',{label:'Stigning'},Math.round(w4[3].elev)+'m')}`;
+    ${miniLine(kmData,'var(--accent)','Km per uke',v=>nFmt(v),null)}
+    ${miniLine(paceData,'#ff7043','Snittempo',v=>pFmt(v),null)}
+    ${miniLine(elevData,'#7F77DD','Stigning',v=>eFmt(v)+'m',null)}`;
   }
 
   // Records section
